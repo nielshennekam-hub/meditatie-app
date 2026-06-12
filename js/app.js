@@ -6,12 +6,14 @@
   const defaults = {
     minutes: 15, gong: "bowl", intervalMin: 0, ambient: "", prepSec: 5,
     strikesStart: 1, strikesInterval: 1, strikesEnd: 1,
-    breathTech: "box", breathMin: 3, ambVolume: 60, sleepMin: 0
+    breathTech: "box", breathMin: 3, ambVolume: 60, sleepMin: 0, lang: "nl"
   };
 
   let settings = { ...defaults };
   try { Object.assign(settings, JSON.parse(localStorage.getItem(SKEY)) || {}); }
   catch (e) { /* verse start */ }
+
+  I18n.setLang(settings.lang);
 
   function save() { localStorage.setItem(SKEY, JSON.stringify(settings)); }
 
@@ -85,22 +87,30 @@
   const intervalChips = bindChips("interval-chips", "ival", v => { settings.intervalMin = parseInt(v, 10); save(); });
   const ambientChips = bindChips("ambient-chips", "amb", v => { settings.ambient = v; save(); });
   const prepChips = bindChips("prep-chips", "prep", v => { settings.prepSec = parseInt(v, 10); save(); });
+  const langChips = bindChips("lang-chips", "lang", v => {
+    settings.lang = v;
+    save();
+    I18n.setLang(v);
+    renderGreeting();
+    renderQuote();
+    updateSummary();
+    refreshSoundCards();
+    renderHintText();
+    Stats.renderProgress();
+  });
 
   /* ---------- inklapbare instellingen met samenvatting ---------- */
 
   const settingsCard = document.getElementById("settings-card");
   const settingsToggle = document.getElementById("settings-toggle");
   const summaryEl = document.getElementById("settings-summary");
-  const GONG_NAMES = { bowl: "Klankschaal", gong: "Diepe gong", crystal: "Kristal", bells: "Belletjes" };
-  const AMB_NAMES = { rain: "regen", ocean: "oceaan", wind: "wind", noise: "ruis" };
-
   function updateSummary() {
     const parts = [
-      GONG_NAMES[settings.gong] || "Klankschaal",
-      `${settings.strikesStart}·${settings.strikesInterval}·${settings.strikesEnd} belletjes`
+      I18n.t("gong." + settings.gong),
+      `${settings.strikesStart}·${settings.strikesInterval}·${settings.strikesEnd} ${I18n.t("summary.bells")}`
     ];
-    if (settings.intervalMin > 0) parts.push(`elke ${settings.intervalMin} min`);
-    if (settings.ambient) parts.push(AMB_NAMES[settings.ambient]);
+    if (settings.intervalMin > 0) parts.push(I18n.t("summary.every", settings.intervalMin));
+    if (settings.ambient) parts.push(I18n.t("amb." + settings.ambient).toLowerCase());
     summaryEl.textContent = parts.join(" · ");
   }
 
@@ -157,7 +167,8 @@
     soundCards.forEach(card => {
       const on = card.dataset.sound === playing;
       card.classList.toggle("playing", on);
-      card.querySelector(".sound-state").textContent = on ? "speelt" : "stil";
+      card.querySelector(".sound-state").textContent =
+        on ? I18n.t("sound.playing") : I18n.t("sound.silent");
     });
   }
 
@@ -197,24 +208,23 @@
 
   /* ---------- begroeting & dagquote ---------- */
 
-  function greeting() {
-    const h = new Date().getHours();
-    if (h < 6) return "Goedenacht";
-    if (h < 12) return "Goedemorgen";
-    if (h < 18) return "Goedemiddag";
-    return "Goedenavond";
+  function renderGreeting() {
+    const now = new Date();
+    const h = now.getHours();
+    const key = h < 6 ? "greet.night" : h < 12 ? "greet.morning"
+      : h < 18 ? "greet.afternoon" : "greet.evening";
+    document.getElementById("greeting").textContent =
+      `${I18n.t(key)} · ${I18n.t("days")[now.getDay()]} ${now.getDate()} ${I18n.t("months")[now.getMonth()]}`;
   }
 
-  const days = ["zondag", "maandag", "dinsdag", "woensdag", "donderdag", "vrijdag", "zaterdag"];
-  const months = ["januari", "februari", "maart", "april", "mei", "juni",
-    "juli", "augustus", "september", "oktober", "november", "december"];
-  const now = new Date();
-  document.getElementById("greeting").textContent =
-    `${greeting()} · ${days[now.getDay()]} ${now.getDate()} ${months[now.getMonth()]}`;
+  function renderQuote() {
+    const q = Quotes.ofDay(I18n.current());
+    document.getElementById("quote-text").textContent = q.t;
+    document.getElementById("quote-author").textContent = "— " + q.a;
+  }
 
-  const q = Quotes.ofDay();
-  document.getElementById("quote-text").textContent = q.t;
-  document.getElementById("quote-author").textContent = "— " + q.a;
+  renderGreeting();
+  renderQuote();
 
   /* ---------- installatiehint (PWA) ---------- */
 
@@ -232,19 +242,23 @@
     '<path d="M12 3v12M8 6.5L12 3l4 3.5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" fill="none"/>' +
     '<path d="M7 10H5.5A1.5 1.5 0 0 0 4 11.5v8A1.5 1.5 0 0 0 5.5 21h13a1.5 1.5 0 0 0 1.5-1.5v-8A1.5 1.5 0 0 0 18.5 10H17" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" fill="none"/></svg>';
 
+  function renderHintText() {
+    if (hintCard.classList.contains("hidden")) return;
+    if (isIOS) hintText.innerHTML = I18n.t("hint.ios", SHARE_SVG);
+    else hintText.textContent = I18n.t("hint.install");
+  }
+
   if (!isStandalone && !localStorage.getItem(HINT_KEY)) {
     if (isIOS) {
-      hintText.innerHTML = "Zet Stilte op je beginscherm voor de volledige app-ervaring: " +
-        "tik in Safari op " + SHARE_SVG + " <strong>Deel</strong> en kies " +
-        "<strong>‘Zet op beginscherm’</strong>.";
       hintCard.classList.remove("hidden");
+      renderHintText();
     } else {
       addEventListener("beforeinstallprompt", e => {
         e.preventDefault();
         installPrompt = e;
-        hintText.textContent = "Installeer Stilte als app — dan werkt hij offline en op volledig scherm.";
         installBtn.classList.remove("hidden");
         hintCard.classList.remove("hidden");
+        renderHintText();
       });
     }
   }
@@ -330,6 +344,7 @@
   sleepChips.set(settings.sleepMin);
   volSlider.value = settings.ambVolume;
   SoundEngine.setAmbientVolume(settings.ambVolume / 100);
+  langChips.set(settings.lang);
   updateSummary();
 
   Stats.renderHeader();

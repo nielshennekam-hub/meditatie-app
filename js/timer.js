@@ -15,10 +15,10 @@ const Session = (() => {
   const ICON_PLAY = "M8 5v14l11-7z";
 
   const BREATH_PATTERNS = {
-    box: [["Adem in", 4], ["Houd vast", 4], ["Adem uit", 4], ["Rust", 4]],
-    "478": [["Adem in", 4], ["Houd vast", 7], ["Adem uit", 8]],
-    coherent: [["Adem in", 5], ["Adem uit", 5]],
-    calm: [["Adem in", 4], ["Adem uit", 6]]
+    box: [["phase.in", 4], ["phase.hold", 4], ["phase.out", 4], ["phase.rest", 4]],
+    "478": [["phase.in", 4], ["phase.hold", 7], ["phase.out", 8]],
+    coherent: [["phase.in", 5], ["phase.out", 5]],
+    calm: [["phase.in", 4], ["phase.out", 6]]
   };
 
   let st = null;          // actieve sessiestatus
@@ -101,14 +101,14 @@ const Session = (() => {
       pos -= p[1];
     }
     const frac = pos / phase[1];
-    phaseLabel.textContent = phase[0];
+    phaseLabel.textContent = I18n.t(phase[0]);
     subEl.textContent = Math.ceil(phase[1] - pos);
     const ease = t => t * t * (3 - 2 * t);
     const lo = 0.62, hi = 1.0;
     let scale;
-    if (phase[0] === "Adem in") scale = lo + (hi - lo) * ease(frac);
-    else if (phase[0] === "Adem uit") scale = hi - (hi - lo) * ease(frac);
-    else if (phase[0] === "Houd vast") scale = hi;
+    if (phase[0] === "phase.in") scale = lo + (hi - lo) * ease(frac);
+    else if (phase[0] === "phase.out") scale = hi - (hi - lo) * ease(frac);
+    else if (phase[0] === "phase.hold") scale = hi;
     else scale = lo;
     halo.style.setProperty("--breath", scale.toFixed(3));
   }
@@ -159,14 +159,14 @@ const Session = (() => {
     };
 
     if (cfg.prepSec > 0) {
-      phaseLabel.textContent = "Maak je klaar";
+      phaseLabel.textContent = I18n.t("session.prepare");
       let left = cfg.prepSec;
-      subEl.textContent = `begint over ${left}`;
+      subEl.textContent = I18n.t("session.startsIn", left);
       st.prepId = setInterval(() => {
         left--;
         if (!st) { clearInterval(st?.prepId); return; }
         if (left <= 0) { clearInterval(st.prepId); st.prepId = null; begin(); }
-        else subEl.textContent = `begint over ${left}`;
+        else subEl.textContent = I18n.t("session.startsIn", left);
       }, 1000);
     } else {
       begin();
@@ -201,7 +201,7 @@ const Session = (() => {
     cancelBells();
     SoundEngine.stopAmbient(0.8);
     pausePath.setAttribute("d", ICON_PLAY);
-    phaseLabel.textContent = "Gepauzeerd";
+    phaseLabel.textContent = I18n.t("session.paused");
     releaseWakeLock();
   }
 
@@ -256,14 +256,13 @@ const Session = (() => {
   }
 
   function showDone(minutes, mode) {
-    const t = Stats.totals(Stats.load());
-    const what = mode === "adem" ? "ademruimte" : "stilte";
+    const tot = Stats.totals(Stats.load());
     const parts = [];
-    if (minutes >= 1) parts.push(`${minutes} ${minutes === 1 ? "minuut" : "minuten"} ${what}`);
-    parts.push(`sessie ${t.sessions}`);
-    if (t.current >= 2) parts.push(`${t.current} dagen op rij`);
+    if (minutes >= 1) parts.push(I18n.t("done.minutes", minutes, mode));
+    parts.push(I18n.t("done.session", tot.sessions));
+    if (tot.current >= 2) parts.push(I18n.t("done.streak", tot.current));
     document.getElementById("done-stats").textContent = parts.join(" · ");
-    const q = Quotes.random();
+    const q = Quotes.random(I18n.current());
     document.getElementById("done-quote").textContent = q.t;
     document.getElementById("done-quote-author").textContent = "— " + q.a;
     doneOverlay.classList.remove("hidden");

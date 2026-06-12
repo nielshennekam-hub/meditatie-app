@@ -59,15 +59,15 @@ const Stats = (() => {
   }
 
   const MILESTONES = [
-    { id: "s1", emblem: "🌱", name: "Eerste stap", test: t => t.sessions >= 1 },
-    { id: "s10", emblem: "🧘", name: "10 sessies", test: t => t.sessions >= 10 },
-    { id: "s50", emblem: "🌸", name: "50 sessies", test: t => t.sessions >= 50 },
-    { id: "d3", emblem: "🔥", name: "3 dagen op rij", test: t => t.best >= 3 },
-    { id: "d7", emblem: "⭐", name: "7 dagen op rij", test: t => t.best >= 7 },
-    { id: "d30", emblem: "🌙", name: "30 dagen op rij", test: t => t.best >= 30 },
-    { id: "m60", emblem: "⏳", name: "1 uur stilte", test: t => t.minutes >= 60 },
-    { id: "m300", emblem: "🌊", name: "5 uur stilte", test: t => t.minutes >= 300 },
-    { id: "m1440", emblem: "🏔️", name: "24 uur stilte", test: t => t.minutes >= 1440 }
+    { id: "s1", emblem: "🌱", test: t => t.sessions >= 1 },
+    { id: "s10", emblem: "🧘", test: t => t.sessions >= 10 },
+    { id: "s50", emblem: "🌸", test: t => t.sessions >= 50 },
+    { id: "d3", emblem: "🔥", test: t => t.best >= 3 },
+    { id: "d7", emblem: "⭐", test: t => t.best >= 7 },
+    { id: "d30", emblem: "🌙", test: t => t.best >= 30 },
+    { id: "m60", emblem: "⏳", test: t => t.minutes >= 60 },
+    { id: "m300", emblem: "🌊", test: t => t.minutes >= 300 },
+    { id: "m1440", emblem: "🏔️", test: t => t.minutes >= 1440 }
   ];
 
   function totals(list) {
@@ -81,10 +81,6 @@ const Stats = (() => {
   }
 
   /* ---------- Weergave ---------- */
-
-  const DOW = ["ma", "di", "wo", "do", "vr", "za", "zo"];
-  const MONTHS = ["januari", "februari", "maart", "april", "mei", "juni",
-    "juli", "augustus", "september", "oktober", "november", "december"];
 
   function renderHeader() {
     const t = totals(load());
@@ -113,7 +109,7 @@ const Stats = (() => {
       bar.title = `${min} min`;
       const label = document.createElement("span");
       label.className = "week-day" + (dayKey(d) === dayKey(today) ? " today" : "");
-      label.textContent = DOW[(d.getDay() + 6) % 7];
+      label.textContent = I18n.t("dow")[(d.getDay() + 6) % 7];
       col.append(bar, label);
       wrap.append(col);
     }
@@ -124,9 +120,9 @@ const Stats = (() => {
     const title = document.getElementById("heatmap-title");
     wrap.innerHTML = "";
     const today = new Date();
-    title.textContent = MONTHS[today.getMonth()] + " " + today.getFullYear();
+    title.textContent = I18n.t("months")[today.getMonth()] + " " + today.getFullYear();
 
-    for (const d of DOW) {
+    for (const d of I18n.t("dow")) {
       const h = document.createElement("div");
       h.className = "heat-cell heat-dow";
       h.textContent = d;
@@ -160,7 +156,7 @@ const Stats = (() => {
       const el = document.createElement("div");
       el.className = "milestone" + (m.test(t) ? " earned" : "");
       el.innerHTML = `<span class="milestone-emblem">${m.emblem}</span>` +
-        `<span class="milestone-name">${m.name}</span>`;
+        `<span class="milestone-name">${I18n.t("ms." + m.id)}</span>`;
       wrap.append(el);
     }
   }
@@ -171,7 +167,7 @@ const Stats = (() => {
     if (!list.length) {
       const li = document.createElement("li");
       li.className = "session-empty";
-      li.textContent = "Nog geen sessies — jouw eerste moment van stilte wacht.";
+      li.textContent = I18n.t("sessions.empty");
       wrap.append(li);
       return;
     }
@@ -181,10 +177,10 @@ const Stats = (() => {
       const when = new Date(s.ts || s.d + "T12:00:00");
       const time = String(when.getHours()).padStart(2, "0") + ":" +
         String(when.getMinutes()).padStart(2, "0");
-      const label = s.type === "adem" ? "Ademhaling" : "Meditatie";
+      const label = I18n.t("type." + (s.type === "adem" ? "adem" : "meditatie"));
       li.innerHTML =
         `<span><span class="s-type">${label}</span> ` +
-        `<span class="s-meta">· ${when.getDate()} ${MONTHS[when.getMonth()].slice(0, 3)} · ${time}</span></span>` +
+        `<span class="s-meta">· ${when.getDate()} ${I18n.t("months")[when.getMonth()].slice(0, 3)} · ${time}</span></span>` +
         `<span class="s-min">${s.min} min</span>`;
       wrap.append(li);
     }
@@ -198,9 +194,9 @@ const Stats = (() => {
     document.getElementById("stat-sessions").textContent = t.sessions;
     document.getElementById("stat-best").textContent = t.best;
     const sub = document.getElementById("progress-sub");
-    if (t.sessions === 0) sub.textContent = "Elke minuut stilte telt.";
-    else if (t.current >= 2) sub.textContent = `Al ${t.current} dagen op rij — mooi zo.`;
-    else sub.textContent = `${t.minutes} minuten stilte verzameld.`;
+    if (t.sessions === 0) sub.textContent = I18n.t("progress.empty.sub");
+    else if (t.current >= 2) sub.textContent = I18n.t("progress.streak.sub", t.current);
+    else sub.textContent = I18n.t("progress.minutes.sub", t.minutes);
     const byDay = minutesByDay(list);
     renderWeekChart(byDay);
     renderHeatmap(byDay);

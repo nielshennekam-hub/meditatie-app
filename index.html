@@ -46,8 +46,8 @@
       <aside class="card install-hint hidden" id="install-hint" aria-label="Installeer de app">
         <p id="install-text"></p>
         <div class="install-actions">
-          <button class="chip hidden" id="install-btn">Installeer</button>
-          <button class="chip" id="install-dismiss">Niet nu</button>
+          <button class="chip hidden" id="install-btn" data-i18n="btn.install">Installeer</button>
+          <button class="chip" id="install-dismiss" data-i18n="btn.notnow">Niet nu</button>
         </div>
       </aside>
 
@@ -69,7 +69,7 @@
         </svg>
         <div class="dial-center">
           <div class="dial-time" id="dial-time">15:00</div>
-          <div class="dial-label">minuten stilte</div>
+          <div class="dial-label" data-i18n="dial.label">minuten stilte</div>
         </div>
       </div>
 
@@ -85,12 +85,12 @@
       </div>
       <input type="range" id="duration-slider" class="slider" min="1" max="120" step="1" value="15" aria-label="Duur in minuten">
 
-      <button class="primary-btn" id="start-meditation">Begin meditatie</button>
+      <button class="primary-btn" id="start-meditation" data-i18n="btn.start.meditation">Begin meditatie</button>
 
       <div class="card setting-card collapsible" id="settings-card">
         <button class="settings-toggle" id="settings-toggle" aria-expanded="false" aria-controls="settings-body">
           <span class="settings-toggle-text">
-            <span class="setting-name">Instellingen</span>
+            <span class="setting-name" data-i18n="settings.title">Instellingen</span>
             <span class="settings-summary" id="settings-summary"></span>
           </span>
           <svg class="icon chevron" viewBox="0 0 24 24"><path d="M6 9l6 6 6-6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" fill="none"/></svg>
@@ -98,22 +98,22 @@
         <div class="settings-body" id="settings-body">
         <div class="setting">
           <div class="setting-head">
-            <span class="setting-name">Gong</span>
+            <span class="setting-name" data-i18n="setting.gong">Gong</span>
             <button class="preview-btn" id="preview-gong" aria-label="Beluister gong">
               <svg viewBox="0 0 24 24" class="icon"><path d="M8 5v14l11-7z" fill="currentColor"/></svg>
             </button>
           </div>
           <div class="chip-row small" id="gong-chips">
-            <button class="chip active" data-gong="bowl">Klankschaal</button>
-            <button class="chip" data-gong="gong">Diepe gong</button>
-            <button class="chip" data-gong="crystal">Kristal</button>
-            <button class="chip" data-gong="bells">Belletjes</button>
+            <button class="chip active" data-gong="bowl" data-i18n="gong.bowl">Klankschaal</button>
+            <button class="chip" data-gong="gong" data-i18n="gong.gong">Diepe gong</button>
+            <button class="chip" data-gong="crystal" data-i18n="gong.crystal">Kristal</button>
+            <button class="chip" data-gong="bells" data-i18n="gong.bells">Belletjes</button>
           </div>
         </div>
         <div class="setting">
-          <div class="setting-head"><span class="setting-name">Aantal belletjes</span></div>
+          <div class="setting-head"><span class="setting-name" data-i18n="setting.strikes">Aantal belletjes</span></div>
           <div class="strike-row">
-            <span class="strike-label">Start</span>
+            <span class="strike-label" data-i18n="strikes.start">Start</span>
             <div class="chip-row small" id="strikes-start-chips">
               <button class="chip active" data-ss="1">1</button>
               <button class="chip" data-ss="2">2</button>
@@ -121,7 +121,7 @@
             </div>
           </div>
           <div class="strike-row">
-            <span class="strike-label">Tussen</span>
+            <span class="strike-label" data-i18n="strikes.mid">Tussen</span>
             <div class="chip-row small" id="strikes-interval-chips">
               <button class="chip active" data-si="1">1</button>
               <button class="chip" data-si="2">2</button>
@@ -129,7 +129,7 @@
             </div>
           </div>
           <div class="strike-row">
-            <span class="strike-label">Einde</span>
+            <span class="strike-label" data-i18n="strikes.end">Einde</span>
             <div class="chip-row small" id="strikes-end-chips">
               <button class="chip active" data-se="1">1</button>
               <button class="chip" data-se="2">2</button>
@@ -138,31 +138,38 @@
           </div>
         </div>
         <div class="setting">
-          <div class="setting-head"><span class="setting-name">Intervalbel</span></div>
+          <div class="setting-head"><span class="setting-name" data-i18n="setting.interval">Intervalbel</span></div>
           <div class="chip-row small" id="interval-chips">
-            <button class="chip active" data-ival="0">Uit</button>
+            <button class="chip active" data-ival="0" data-i18n="chip.off">Uit</button>
             <button class="chip" data-ival="5">5 min</button>
             <button class="chip" data-ival="10">10 min</button>
             <button class="chip" data-ival="15">15 min</button>
           </div>
         </div>
         <div class="setting">
-          <div class="setting-head"><span class="setting-name">Sfeergeluid</span></div>
+          <div class="setting-head"><span class="setting-name" data-i18n="setting.ambient">Sfeergeluid</span></div>
           <div class="chip-row small" id="ambient-chips">
-            <button class="chip active" data-amb="">Geen</button>
-            <button class="chip" data-amb="rain">Regen</button>
-            <button class="chip" data-amb="ocean">Oceaan</button>
-            <button class="chip" data-amb="wind">Wind</button>
-            <button class="chip" data-amb="noise">Ruis</button>
+            <button class="chip active" data-amb="" data-i18n="chip.none">Geen</button>
+            <button class="chip" data-amb="rain" data-i18n="amb.rain">Regen</button>
+            <button class="chip" data-amb="ocean" data-i18n="amb.ocean">Oceaan</button>
+            <button class="chip" data-amb="wind" data-i18n="amb.wind">Wind</button>
+            <button class="chip" data-amb="noise" data-i18n="amb.noise">Ruis</button>
           </div>
         </div>
         <div class="setting">
-          <div class="setting-head"><span class="setting-name">Voorbereiding</span></div>
+          <div class="setting-head"><span class="setting-name" data-i18n="setting.prep">Voorbereiding</span></div>
           <div class="chip-row small" id="prep-chips">
-            <button class="chip" data-prep="0">Direct</button>
+            <button class="chip" data-prep="0" data-i18n="chip.direct">Direct</button>
             <button class="chip active" data-prep="5">5 s</button>
             <button class="chip" data-prep="10">10 s</button>
             <button class="chip" data-prep="20">20 s</button>
+          </div>
+        </div>
+        <div class="setting">
+          <div class="setting-head"><span class="setting-name" data-i18n="setting.lang">Taal</span></div>
+          <div class="chip-row small" id="lang-chips">
+            <button class="chip active" data-lang="nl">Nederlands</button>
+            <button class="chip" data-lang="en">English</button>
           </div>
         </div>
         </div>
@@ -172,35 +179,35 @@
     <!-- ====================== ADEM ====================== -->
     <section id="view-adem" class="view" aria-label="Ademhalingsoefeningen">
       <header class="view-header">
-        <h2>Adem</h2>
-        <p>Kom tot rust met een geleide ademhaling.</p>
+        <h2 data-i18n="breath.title">Adem</h2>
+        <p data-i18n="breath.sub">Kom tot rust met een geleide ademhaling.</p>
       </header>
 
       <div class="technique-list" id="technique-list">
         <button class="card technique active" data-tech="box">
-          <span class="technique-name">Box-ademhaling</span>
+          <span class="technique-name" data-i18n="tech.box.name">Box-ademhaling</span>
           <span class="technique-pattern">4 · 4 · 4 · 4</span>
-          <span class="technique-desc">Gelijkmatig vierkant ritme voor focus en kalmte.</span>
+          <span class="technique-desc" data-i18n="tech.box.desc">Gelijkmatig vierkant ritme voor focus en kalmte.</span>
         </button>
         <button class="card technique" data-tech="478">
-          <span class="technique-name">4-7-8</span>
+          <span class="technique-name" data-i18n="tech.478.name">4-7-8</span>
           <span class="technique-pattern">4 · 7 · 8</span>
-          <span class="technique-desc">Diep ontspannend, fijn voor het slapengaan.</span>
+          <span class="technique-desc" data-i18n="tech.478.desc">Diep ontspannend, fijn voor het slapengaan.</span>
         </button>
         <button class="card technique" data-tech="coherent">
-          <span class="technique-name">Gelijkmatig</span>
+          <span class="technique-name" data-i18n="tech.coherent.name">Gelijkmatig</span>
           <span class="technique-pattern">5 · 5</span>
-          <span class="technique-desc">Rustig in- en uitademen in balans.</span>
+          <span class="technique-desc" data-i18n="tech.coherent.desc">Rustig in- en uitademen in balans.</span>
         </button>
         <button class="card technique" data-tech="calm">
-          <span class="technique-name">Kalmerend</span>
+          <span class="technique-name" data-i18n="tech.calm.name">Kalmerend</span>
           <span class="technique-pattern">4 · 6</span>
-          <span class="technique-desc">Langere uitademing activeert ontspanning.</span>
+          <span class="technique-desc" data-i18n="tech.calm.desc">Langere uitademing activeert ontspanning.</span>
         </button>
       </div>
 
       <div class="setting">
-        <div class="setting-head"><span class="setting-name">Duur</span></div>
+        <div class="setting-head"><span class="setting-name" data-i18n="setting.duration">Duur</span></div>
         <div class="chip-row small" id="breath-duration-chips">
           <button class="chip" data-bmin="1">1 min</button>
           <button class="chip" data-bmin="2">2 min</button>
@@ -210,48 +217,48 @@
         </div>
       </div>
 
-      <button class="primary-btn" id="start-breath">Begin oefening</button>
+      <button class="primary-btn" id="start-breath" data-i18n="btn.start.breath">Begin oefening</button>
     </section>
 
     <!-- ====================== GELUIDEN ====================== -->
     <section id="view-geluiden" class="view" aria-label="Sfeergeluiden">
       <header class="view-header">
-        <h2>Geluiden</h2>
-        <p>Sfeer om bij weg te dromen of te focussen.</p>
+        <h2 data-i18n="sounds.title">Geluiden</h2>
+        <p data-i18n="sounds.sub">Sfeer om bij weg te dromen of te focussen.</p>
       </header>
 
       <div class="sound-grid" id="sound-grid">
         <button class="card sound-card" data-sound="rain">
           <svg viewBox="0 0 24 24" class="sound-icon"><path d="M6 13a5 5 0 0 1 .5-9.9A6 6 0 0 1 18 5.3 4.3 4.3 0 0 1 17.5 13z" fill="currentColor" opacity=".85"/><path d="M8 16l-1.2 3M12 16l-1.2 3M16 16l-1.2 3" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" fill="none"/></svg>
-          <span class="sound-name">Regen</span>
-          <span class="sound-state">stil</span>
+          <span class="sound-name" data-i18n="sound.rain">Regen</span>
+          <span class="sound-state" data-i18n="sound.silent">stil</span>
         </button>
         <button class="card sound-card" data-sound="ocean">
           <svg viewBox="0 0 24 24" class="sound-icon"><path d="M2 12c2.5 0 2.5-2 5-2s2.5 2 5 2 2.5-2 5-2 2.5 2 5 2M2 17c2.5 0 2.5-2 5-2s2.5 2 5 2 2.5-2 5-2 2.5 2 5 2" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" fill="none"/></svg>
-          <span class="sound-name">Oceaan</span>
-          <span class="sound-state">stil</span>
+          <span class="sound-name" data-i18n="sound.ocean">Oceaan</span>
+          <span class="sound-state" data-i18n="sound.silent">stil</span>
         </button>
         <button class="card sound-card" data-sound="wind">
           <svg viewBox="0 0 24 24" class="sound-icon"><path d="M3 8h10a3 3 0 1 0-3-3M3 12h15a3 3 0 1 1-3 3M3 16h8a2.5 2.5 0 1 1-2.5 2.5" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" fill="none"/></svg>
-          <span class="sound-name">Wind</span>
-          <span class="sound-state">stil</span>
+          <span class="sound-name" data-i18n="sound.wind">Wind</span>
+          <span class="sound-state" data-i18n="sound.silent">stil</span>
         </button>
         <button class="card sound-card" data-sound="noise">
           <svg viewBox="0 0 24 24" class="sound-icon"><path d="M4 12h2l2-5 3 10 3-8 2 3h4" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" fill="none"/></svg>
-          <span class="sound-name">Diepe ruis</span>
-          <span class="sound-state">stil</span>
+          <span class="sound-name" data-i18n="sound.noise">Diepe ruis</span>
+          <span class="sound-state" data-i18n="sound.silent">stil</span>
         </button>
       </div>
 
       <div class="card setting-card">
         <div class="setting">
-          <div class="setting-head"><span class="setting-name">Volume</span></div>
+          <div class="setting-head"><span class="setting-name" data-i18n="setting.volume">Volume</span></div>
           <input type="range" id="ambient-volume" class="slider" min="0" max="100" value="60" aria-label="Volume sfeergeluiden">
         </div>
         <div class="setting">
-          <div class="setting-head"><span class="setting-name">Slaaptimer</span></div>
+          <div class="setting-head"><span class="setting-name" data-i18n="setting.sleep">Slaaptimer</span></div>
           <div class="chip-row small" id="sleep-chips">
-            <button class="chip active" data-sleep="0">Uit</button>
+            <button class="chip active" data-sleep="0" data-i18n="chip.off">Uit</button>
             <button class="chip" data-sleep="10">10 min</button>
             <button class="chip" data-sleep="20">20 min</button>
             <button class="chip" data-sleep="30">30 min</button>
@@ -264,19 +271,19 @@
     <!-- ====================== VOORTGANG ====================== -->
     <section id="view-voortgang" class="view" aria-label="Voortgang">
       <header class="view-header">
-        <h2>Voortgang</h2>
+        <h2 data-i18n="progress.title">Voortgang</h2>
         <p id="progress-sub">Elke minuut stilte telt.</p>
       </header>
 
       <div class="stat-grid">
-        <div class="card stat"><span class="stat-num" id="stat-streak">0</span><span class="stat-label">dagen op rij</span></div>
-        <div class="card stat"><span class="stat-num" id="stat-minutes">0</span><span class="stat-label">minuten totaal</span></div>
-        <div class="card stat"><span class="stat-num" id="stat-sessions">0</span><span class="stat-label">sessies</span></div>
-        <div class="card stat"><span class="stat-num" id="stat-best">0</span><span class="stat-label">langste reeks</span></div>
+        <div class="card stat"><span class="stat-num" id="stat-streak">0</span><span class="stat-label" data-i18n="stat.streak">dagen op rij</span></div>
+        <div class="card stat"><span class="stat-num" id="stat-minutes">0</span><span class="stat-label" data-i18n="stat.minutes">minuten totaal</span></div>
+        <div class="card stat"><span class="stat-num" id="stat-sessions">0</span><span class="stat-label" data-i18n="stat.sessions">sessies</span></div>
+        <div class="card stat"><span class="stat-num" id="stat-best">0</span><span class="stat-label" data-i18n="stat.best">langste reeks</span></div>
       </div>
 
       <div class="card">
-        <h3 class="card-title">Deze week</h3>
+        <h3 class="card-title" data-i18n="card.week">Deze week</h3>
         <div class="week-chart" id="week-chart"></div>
       </div>
 
@@ -286,12 +293,12 @@
       </div>
 
       <div class="card">
-        <h3 class="card-title">Mijlpalen</h3>
+        <h3 class="card-title" data-i18n="card.milestones">Mijlpalen</h3>
         <div class="milestone-grid" id="milestone-grid"></div>
       </div>
 
       <div class="card">
-        <h3 class="card-title">Recente sessies</h3>
+        <h3 class="card-title" data-i18n="card.recent">Recente sessies</h3>
         <ul class="session-list" id="session-list"></ul>
       </div>
     </section>
@@ -323,13 +330,13 @@
       <div class="done-ring">
         <svg viewBox="0 0 24 24" class="icon big"><path d="M5 13l4 4L19 7" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" fill="none"/></svg>
       </div>
-      <h2 class="done-title">Mooi gedaan</h2>
+      <h2 class="done-title" data-i18n="done.title">Mooi gedaan</h2>
       <p class="done-stats" id="done-stats"></p>
       <figure class="quote-card on-dark">
         <blockquote id="done-quote"></blockquote>
         <figcaption id="done-quote-author"></figcaption>
       </figure>
-      <button class="primary-btn" id="btn-done-close">Klaar</button>
+      <button class="primary-btn" id="btn-done-close" data-i18n="btn.done">Klaar</button>
     </div>
   </div>
 
@@ -337,22 +344,23 @@
   <nav class="tabbar" aria-label="Hoofdmenu">
     <button class="tab active" data-view="timer" aria-label="Timer">
       <svg viewBox="0 0 24 24" class="icon"><circle cx="12" cy="13" r="7.5" stroke="currentColor" stroke-width="1.7" fill="none"/><path d="M12 9.5V13l2.5 2M10 2.5h4" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" fill="none"/></svg>
-      <span>Timer</span>
+      <span data-i18n="tab.timer">Timer</span>
     </button>
     <button class="tab" data-view="adem" aria-label="Adem">
       <svg viewBox="0 0 24 24" class="icon"><circle cx="12" cy="12" r="3.2" stroke="currentColor" stroke-width="1.7" fill="none"/><circle cx="12" cy="12" r="7.5" stroke="currentColor" stroke-width="1.2" opacity=".5" fill="none"/><circle cx="12" cy="12" r="10.2" stroke="currentColor" stroke-width="1" opacity=".25" fill="none"/></svg>
-      <span>Adem</span>
+      <span data-i18n="tab.breath">Adem</span>
     </button>
     <button class="tab" data-view="geluiden" aria-label="Geluiden">
       <svg viewBox="0 0 24 24" class="icon"><path d="M4 10v4h3l4 4V6L7 10H4z" fill="currentColor"/><path d="M15 9a4 4 0 0 1 0 6M17.5 6.5a8 8 0 0 1 0 11" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" fill="none"/></svg>
-      <span>Geluiden</span>
+      <span data-i18n="tab.sounds">Geluiden</span>
     </button>
     <button class="tab" data-view="voortgang" aria-label="Voortgang">
       <svg viewBox="0 0 24 24" class="icon"><path d="M5 20V12M10.5 20V6M16 20v-9M21 20H3" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" fill="none"/></svg>
-      <span>Voortgang</span>
+      <span data-i18n="tab.progress">Voortgang</span>
     </button>
   </nav>
 
+  <script src="js/i18n.js"></script>
   <script src="js/quotes.js"></script>
   <script src="js/audio.js"></script>
   <script src="js/stats.js"></script>

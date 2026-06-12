@@ -3,13 +3,14 @@
    bent, met cache als vangnet voor offline); overige bestanden
    cache-eerst voor snelheid. */
 
-const CACHE = "stilte-v5";
+const CACHE = "stilte-v6";
 
 const ASSETS = [
   "./",
   "./index.html",
   "./manifest.webmanifest",
   "./css/style.css",
+  "./js/i18n.js",
   "./js/quotes.js",
   "./js/audio.js",
   "./js/stats.js",
