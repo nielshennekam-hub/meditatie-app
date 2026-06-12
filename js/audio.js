@@ -85,14 +85,15 @@ const SoundEngine = (() => {
 
   /* ---------- meegeleverde opnames (echte klankschaal) ---------- */
 
-  const SAMPLES = { real: "assets/sounds/bowl-real.mp3" };
+  // gain stemt het niveau af op de gesynthetiseerde klanken (RMS-gematcht)
+  const SAMPLES = { real: { url: "assets/sounds/bowl-real.mp3", gain: 0.5 } };
   let sampleBuffers = {};
   let samplePending = {};
 
   function loadSample(name) {
     if (sampleBuffers[name]) return Promise.resolve(sampleBuffers[name]);
     if (!samplePending[name]) {
-      samplePending[name] = fetch(SAMPLES[name])
+      samplePending[name] = fetch(SAMPLES[name].url)
         .then(r => r.arrayBuffer())
         .then(ab => ctx.decodeAudioData(ab))
         .then(buf => { sampleBuffers[name] = buf; return buf; })
@@ -119,7 +120,7 @@ const SoundEngine = (() => {
       const g = ctx.createGain();
       const at = Math.max(ctx.currentTime, t0);
       g.gain.setValueAtTime(0, at);
-      g.gain.linearRampToValueAtTime(0.85 * volume, at + 0.01);
+      g.gain.linearRampToValueAtTime(SAMPLES[name].gain * volume, at + 0.01);
       src.connect(g).connect(master);
       src.start(at);
       state.src = src;
