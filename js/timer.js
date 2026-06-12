@@ -50,7 +50,6 @@ const Session = (() => {
 
   /* ---------- gongs plannen op de audioklok ---------- */
 
-  const STRIKE_GAP = 2.2; // seconden tussen opeenvolgende slagen in een reeks
 
   // Plant alle resterende bellen (reeksen) op de audioklok; voegt toe aan
   // st.scheduled zodat pauze/stop ze kan annuleren. Aanroeper hoort eerst
@@ -60,7 +59,7 @@ const Session = (() => {
     const elapsed = st.totalSec - remaining();
     const seq = (atSec, count, vol) => {
       for (let k = 0; k < count; k++) {
-        const dt = atSec + k * STRIKE_GAP - elapsed;
+        const dt = atSec + k * st.gap - elapsed;
         if (dt > 0.05) st.scheduled.push(SoundEngine.strike(st.gong, t0 + dt, vol));
       }
     };
@@ -137,6 +136,7 @@ const Session = (() => {
       intervalMin: cfg.intervalMin,
       ambient: cfg.ambient,
       strikes: cfg.strikes || { start: 1, interval: 1, end: 1 },
+      gap: cfg.gapSec || 2,
       paused: false,
       scheduled: []
     };
@@ -151,7 +151,7 @@ const Session = (() => {
       st.endsAt = Date.now() + st.totalSec * 1000;
       const t0 = SoundEngine.now();
       for (let k = 0; k < st.strikes.start; k++) {
-        st.scheduled.push(SoundEngine.strike(st.gong, t0 + k * STRIKE_GAP, 1));
+        st.scheduled.push(SoundEngine.strike(st.gong, t0 + k * st.gap, 1));
       }
       if (st.ambient) SoundEngine.startAmbient(st.ambient, 3);
       scheduleBells();
@@ -182,6 +182,7 @@ const Session = (() => {
       gong: "bowl",
       intervalMin: 0,
       strikes: { start: 1, interval: 1, end: 1 },
+      gap: 2,
       paused: false,
       scheduled: []
     };

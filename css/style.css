@@ -396,6 +396,27 @@ button {
 .strike-row .chip-row { margin: 6px 0 0; }
 .strike-row .chip { padding: 6px 14px; }
 
+.custom-sound {
+  margin-top: 12px;
+  padding: 12px 14px;
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+}
+.custom-status {
+  margin: 0 0 10px;
+  font-size: 0.85rem;
+  font-weight: 300;
+  line-height: 1.5;
+  color: var(--ink-soft);
+}
+.custom-actions { display: flex; flex-wrap: wrap; gap: 8px; }
+.custom-actions .chip.recording {
+  border-color: rgba(232, 144, 138, 0.7);
+  color: #e8908a;
+  box-shadow: 0 0 12px rgba(232, 144, 138, 0.25);
+}
+
 .preview-btn {
   display: grid;
   place-items: center;

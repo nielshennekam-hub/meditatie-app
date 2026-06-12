@@ -108,6 +108,25 @@
             <button class="chip" data-gong="gong" data-i18n="gong.gong">Diepe gong</button>
             <button class="chip" data-gong="crystal" data-i18n="gong.crystal">Kristal</button>
             <button class="chip" data-gong="bells" data-i18n="gong.bells">Belletjes</button>
+            <button class="chip" data-gong="custom" data-i18n="gong.custom">Eigen</button>
+          </div>
+          <div class="custom-sound hidden" id="custom-panel">
+            <p class="custom-status" id="custom-status"></p>
+            <div class="custom-actions">
+              <button class="chip" id="custom-record">● Opnemen</button>
+              <button class="chip" id="custom-file-btn">Bestand kiezen</button>
+              <button class="chip hidden" id="custom-delete">Verwijderen</button>
+            </div>
+            <input type="file" id="custom-file" accept="audio/*" hidden>
+          </div>
+        </div>
+        <div class="setting">
+          <div class="setting-head"><span class="setting-name" data-i18n="setting.gap">Tussenpoos</span></div>
+          <div class="chip-row small" id="gap-chips">
+            <button class="chip" data-gap="1">1 s</button>
+            <button class="chip active" data-gap="2">2 s</button>
+            <button class="chip" data-gap="3">3 s</button>
+            <button class="chip" data-gap="5">5 s</button>
           </div>
         </div>
         <div class="setting">

@@ -5,7 +5,7 @@
 
   const defaults = {
     minutes: 15, gong: "bowl", intervalMin: 0, ambient: "", prepSec: 5,
-    strikesStart: 1, strikesInterval: 1, strikesEnd: 1,
+    strikesStart: 1, strikesInterval: 1, strikesEnd: 1, gapSec: 2,
     breathTech: "box", breathMin: 3, ambVolume: 60, sleepMin: 0, lang: "nl"
   };
 
@@ -80,7 +80,12 @@
   });
   slider.addEventListener("change", save);
 
-  const gongChips = bindChips("gong-chips", "gong", v => { settings.gong = v; save(); });
+  const gongChips = bindChips("gong-chips", "gong", v => {
+    settings.gong = v;
+    save();
+    renderCustomPanel();
+  });
+  const gapChips = bindChips("gap-chips", "gap", v => { settings.gapSec = parseInt(v, 10); save(); });
   const strikesStartChips = bindChips("strikes-start-chips", "ss", v => { settings.strikesStart = parseInt(v, 10); save(); });
   const strikesIntervalChips = bindChips("strikes-interval-chips", "si", v => { settings.strikesInterval = parseInt(v, 10); save(); });
   const strikesEndChips = bindChips("strikes-end-chips", "se", v => { settings.strikesEnd = parseInt(v, 10); save(); });
@@ -96,6 +101,7 @@
     updateSummary();
     refreshSoundCards();
     renderHintText();
+    renderCustomPanel();
     Stats.renderProgress();
   });
 
@@ -129,9 +135,90 @@
     SoundEngine.ensure();
     const t0 = SoundEngine.now();
     for (let k = 0; k < settings.strikesStart; k++) {
-      SoundEngine.strike(settings.gong, t0 + k * 2.2, 0.7);
+      SoundEngine.strike(settings.gong, t0 + k * settings.gapSec, 0.7);
     }
   });
+
+  /* ---------- eigen klank: opnemen of bestand kiezen ---------- */
+
+  const customPanel = document.getElementById("custom-panel");
+  const customStatus = document.getElementById("custom-status");
+  const recordBtn = document.getElementById("custom-record");
+  const fileBtn = document.getElementById("custom-file-btn");
+  const fileInput = document.getElementById("custom-file");
+  const deleteBtn = document.getElementById("custom-delete");
+  let recorder = null;
+  let recChunks = [];
+  let recTickId = null;
+
+  function renderCustomPanel(message) {
+    customPanel.classList.toggle("hidden", settings.gong !== "custom");
+    const info = SoundEngine.customInfo();
+    customStatus.textContent = message ||
+      (info ? I18n.t("custom.saved", info.duration) : I18n.t("custom.none"));
+    deleteBtn.classList.toggle("hidden", !info);
+    deleteBtn.textContent = I18n.t("custom.delete");
+    fileBtn.textContent = I18n.t("custom.choose");
+    if (!recorder) recordBtn.textContent = I18n.t("custom.record");
+  }
+
+  async function toggleRecord() {
+    if (recorder) {
+      recorder.stop();
+      return;
+    }
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      recChunks = [];
+      recorder = new MediaRecorder(stream);
+      recorder.ondataavailable = e => { if (e.data.size) recChunks.push(e.data); };
+      recorder.onstop = async () => {
+        stream.getTracks().forEach(track => track.stop());
+        clearInterval(recTickId);
+        const blob = new Blob(recChunks, { type: recorder.mimeType || "audio/mp4" });
+        recorder = null;
+        recordBtn.classList.remove("recording");
+        try {
+          await SoundEngine.setCustomSound(blob, "opname");
+          renderCustomPanel();
+          updateSummary();
+        } catch (e) {
+          renderCustomPanel(I18n.t("custom.error.decode"));
+        }
+      };
+      recorder.start();
+      const t0 = Date.now();
+      recordBtn.classList.add("recording");
+      recTickId = setInterval(() => {
+        const sec = (Date.now() - t0) / 1000;
+        recordBtn.textContent = `■ ${sec.toFixed(0)} s`;
+        if (sec >= 20 && recorder) recorder.stop(); // ruim genoeg voor een slag
+      }, 250);
+    } catch (e) {
+      renderCustomPanel(I18n.t("custom.error.mic"));
+    }
+  }
+
+  recordBtn.addEventListener("click", toggleRecord);
+  fileBtn.addEventListener("click", () => fileInput.click());
+  fileInput.addEventListener("change", async () => {
+    const file = fileInput.files[0];
+    fileInput.value = "";
+    if (!file) return;
+    try {
+      await SoundEngine.setCustomSound(file, file.name);
+      renderCustomPanel();
+      updateSummary();
+    } catch (e) {
+      renderCustomPanel(I18n.t("custom.error.decode"));
+    }
+  });
+  deleteBtn.addEventListener("click", async () => {
+    await SoundEngine.clearCustomSound();
+    renderCustomPanel();
+  });
+
+  SoundEngine.initCustomSound().then(() => renderCustomPanel());
 
   document.getElementById("start-meditation").addEventListener("click", () => {
     Session.startMeditation({
@@ -144,7 +231,8 @@
         start: settings.strikesStart,
         interval: settings.strikesInterval,
         end: settings.strikesEnd
-      }
+      },
+      gapSec: settings.gapSec
     });
   });
 
@@ -345,6 +433,7 @@
   volSlider.value = settings.ambVolume;
   SoundEngine.setAmbientVolume(settings.ambVolume / 100);
   langChips.set(settings.lang);
+  gapChips.set(settings.gapSec);
   updateSummary();
 
   Stats.renderHeader();

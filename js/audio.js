@@ -69,6 +69,10 @@ const SoundEngine = (() => {
   // Geeft een handle terug waarmee de klank geannuleerd kan worden.
   function strike(type, when, volume = 1) {
     ensure();
+    if (type === "custom") {
+      if (customBlob) return strikeCustom(when, volume);
+      type = "bowl"; // geen opname: terugvallen op de klankschaal
+    }
     const def = GONGS[type] || GONGS.bowl;
     const t0 = when ?? ctx.currentTime;
     const sources = [];
@@ -121,6 +125,123 @@ const SoundEngine = (() => {
     return {
       cancel() {
         for (const s of sources) { try { s.stop(); } catch (e) { /* al gestopt */ } }
+      }
+    };
+  }
+
+  /* ---------- Eigen klank (opname of audiobestand) ---------- */
+
+  const DB_NAME = "stilte";
+  const DB_STORE = "sounds";
+  let customBlob = null;     // ruwe audio uit IndexedDB
+  let customBuffer = null;   // gedecodeerd
+  let customGain = 1;        // normalisatie naar gelijk volume
+  let customMeta = null;     // { name, duration }
+  let decoding = null;
+
+  function idb() {
+    return new Promise((resolve, reject) => {
+      const req = indexedDB.open(DB_NAME, 1);
+      req.onupgradeneeded = () => req.result.createObjectStore(DB_STORE);
+      req.onsuccess = () => resolve(req.result);
+      req.onerror = () => reject(req.error);
+    });
+  }
+
+  function idbOp(mode, fn) {
+    return idb().then(db => new Promise((resolve, reject) => {
+      const tx = db.transaction(DB_STORE, mode);
+      const req = fn(tx.objectStore(DB_STORE));
+      tx.oncomplete = () => resolve(req && req.result);
+      tx.onerror = () => reject(tx.error);
+    }));
+  }
+
+  // Bij het opstarten: opgeslagen opname alvast inladen (zonder audio-context).
+  async function initCustomSound() {
+    try {
+      const rec = await idbOp("readonly", store => store.get("custom"));
+      if (rec) {
+        customBlob = rec.blob;
+        customMeta = { name: rec.name, duration: rec.duration };
+      }
+    } catch (e) { /* opslag niet beschikbaar */ }
+    return customMeta;
+  }
+
+  function decodeCustom() {
+    if (customBuffer) return Promise.resolve(customBuffer);
+    if (!customBlob) return Promise.resolve(null);
+    if (!decoding) {
+      decoding = customBlob.arrayBuffer()
+        .then(ab => ctx.decodeAudioData(ab))
+        .then(buf => {
+          let peak = 0;
+          for (let c = 0; c < buf.numberOfChannels; c++) {
+            const d = buf.getChannelData(c);
+            for (let i = 0; i < d.length; i++) {
+              const a = Math.abs(d[i]);
+              if (a > peak) peak = a;
+            }
+          }
+          customGain = peak > 0 ? Math.min(3, 0.9 / peak) : 1;
+          customBuffer = buf;
+          return buf;
+        })
+        .catch(() => { decoding = null; return null; });
+    }
+    return decoding;
+  }
+
+  async function setCustomSound(blob, name) {
+    ensure();
+    customBlob = blob;
+    customBuffer = null;
+    decoding = null;
+    const buf = await decodeCustom();
+    if (!buf) {
+      customBlob = null;
+      customMeta = null;
+      throw new Error("decode");
+    }
+    customMeta = { name: name || "opname", duration: Math.round(buf.duration * 10) / 10 };
+    try {
+      await idbOp("readwrite", store =>
+        store.put({ blob, name: customMeta.name, duration: customMeta.duration }, "custom"));
+    } catch (e) { /* dan alleen voor deze sessie */ }
+    return customMeta;
+  }
+
+  async function clearCustomSound() {
+    customBlob = customBuffer = customMeta = decoding = null;
+    try { await idbOp("readwrite", store => store.delete("custom")); }
+    catch (e) { /* ok */ }
+  }
+
+  function customInfo() { return customMeta; }
+
+  function strikeCustom(when, volume) {
+    const t0 = when ?? ctx.currentTime;
+    const state = { cancelled: false, src: null };
+    const play = () => {
+      if (state.cancelled || !customBuffer) return;
+      const src = ctx.createBufferSource();
+      src.buffer = customBuffer;
+      const g = ctx.createGain();
+      const v = 0.8 * volume * customGain;
+      const at = Math.max(ctx.currentTime, t0);
+      g.gain.setValueAtTime(0, at);
+      g.gain.linearRampToValueAtTime(v, at + 0.01); // klikvrije inzet
+      src.connect(g).connect(master);
+      src.start(at);
+      state.src = src;
+    };
+    if (customBuffer) play();
+    else decodeCustom().then(play);
+    return {
+      cancel() {
+        state.cancelled = true;
+        if (state.src) { try { state.src.stop(); } catch (e) { /* al gestopt */ } }
       }
     };
   }
@@ -269,5 +390,9 @@ const SoundEngine = (() => {
 
   function currentAmbient() { return ambient ? ambient.name : ""; }
 
-  return { ensure, now, strike, startAmbient, stopAmbient, setAmbientVolume, fadeOutAll, currentAmbient };
+  return {
+    ensure, now, strike, startAmbient, stopAmbient, setAmbientVolume,
+    fadeOutAll, currentAmbient,
+    initCustomSound, setCustomSound, clearCustomSound, customInfo
+  };
 })();
