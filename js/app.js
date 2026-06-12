@@ -83,6 +83,7 @@
   const gongChips = bindChips("gong-chips", "gong", v => {
     settings.gong = v;
     save();
+    if (v === "real") SoundEngine.preload(v); // eerste slag dan direct raak
     renderCustomPanel();
   });
   const gapChips = bindChips("gap-chips", "gap", v => { settings.gapSec = parseInt(v, 10); save(); });
@@ -151,16 +152,123 @@
   let recChunks = [];
   let recTickId = null;
 
+  const trimWrap = document.getElementById("trim-wrap");
+  const trimCanvas = document.getElementById("trim-canvas");
+  const trimPlayBtn = document.getElementById("trim-play");
+  const trimResetBtn = document.getElementById("trim-reset");
+  const trimStartLabel = document.getElementById("trim-start-label");
+  const trimEndLabel = document.getElementById("trim-end-label");
+  const trimHint = document.getElementById("trim-hint");
+  let wavePeaks = null;
+  let waveDur = 0;
+
   function renderCustomPanel(message) {
     customPanel.classList.toggle("hidden", settings.gong !== "custom");
     const info = SoundEngine.customInfo();
+    const tr = SoundEngine.trimInfo();
+    const len = tr ? Math.round((tr.end - tr.start) * 10) / 10 : 0;
     customStatus.textContent = message ||
-      (info ? I18n.t("custom.saved", info.duration) : I18n.t("custom.none"));
+      (info ? I18n.t("custom.saved", len) : I18n.t("custom.none"));
     deleteBtn.classList.toggle("hidden", !info);
     deleteBtn.textContent = I18n.t("custom.delete");
     fileBtn.textContent = I18n.t("custom.choose");
     if (!recorder) recordBtn.textContent = I18n.t("custom.record");
+    trimWrap.classList.toggle("hidden", !info);
+    trimPlayBtn.textContent = I18n.t("custom.play");
+    trimResetBtn.textContent = I18n.t("custom.trimreset");
+    trimHint.textContent = I18n.t("custom.trimhint");
+    if (info && settings.gong === "custom") drawTrim();
   }
+
+  /* ---------- golfvorm bijknippen ---------- */
+
+  async function drawTrim() {
+    const wf = await SoundEngine.getWaveform(160);
+    if (!wf) return;
+    wavePeaks = wf.peaks;
+    waveDur = wf.duration;
+    paintTrim();
+  }
+
+  function paintTrim() {
+    if (!wavePeaks || !waveDur) return;
+    const tr = SoundEngine.trimInfo();
+    if (!tr) return;
+    const dpr = Math.min(2, window.devicePixelRatio || 1);
+    const w = trimCanvas.clientWidth;
+    const h = trimCanvas.clientHeight;
+    if (!w) return; // paneel (nog) niet zichtbaar
+    if (trimCanvas.width !== Math.round(w * dpr)) {
+      trimCanvas.width = Math.round(w * dpr);
+      trimCanvas.height = Math.round(h * dpr);
+    }
+    const c = trimCanvas.getContext("2d");
+    c.setTransform(dpr, 0, 0, dpr, 0, 0);
+    c.clearRect(0, 0, w, h);
+    const n = wavePeaks.length;
+    const x0 = (tr.start / waveDur) * w;
+    const x1 = (tr.end / waveDur) * w;
+    const bw = w / n;
+    for (let i = 0; i < n; i++) {
+      const x = (i + 0.5) * bw;
+      const bh = Math.max(2, wavePeaks[i] * (h - 16));
+      const kept = x >= x0 && x <= x1;
+      c.fillStyle = kept ? "rgba(232, 192, 122, 0.85)" : "rgba(255, 255, 255, 0.14)";
+      c.fillRect(x - bw * 0.32, (h - bh) / 2, bw * 0.64, bh);
+    }
+    c.fillStyle = "#b388ff";
+    for (const x of [x0, x1]) {
+      c.fillRect(x - 1.25, 4, 2.5, h - 8);
+      c.beginPath();
+      c.arc(x, h / 2, 5.5, 0, Math.PI * 2);
+      c.fill();
+    }
+    trimStartLabel.textContent = tr.start.toFixed(1) + " s";
+    trimEndLabel.textContent = tr.end.toFixed(1) + " s";
+  }
+
+  let dragHandle = null;
+
+  function moveTrim(e) {
+    const rect = trimCanvas.getBoundingClientRect();
+    const t = Math.max(0, Math.min(1, (e.clientX - rect.left) / rect.width)) * waveDur;
+    const tr = SoundEngine.trimInfo();
+    if (!tr) return;
+    if (dragHandle === "start") SoundEngine.setTrim(t, tr.end);
+    else SoundEngine.setTrim(tr.start, t);
+    paintTrim();
+  }
+
+  trimCanvas.addEventListener("pointerdown", e => {
+    const tr = SoundEngine.trimInfo();
+    if (!tr || !waveDur) return;
+    const rect = trimCanvas.getBoundingClientRect();
+    const x = e.clientX - rect.left;
+    const x0 = (tr.start / waveDur) * rect.width;
+    const x1 = (tr.end / waveDur) * rect.width;
+    dragHandle = Math.abs(x - x0) <= Math.abs(x - x1) ? "start" : "end";
+    trimCanvas.setPointerCapture(e.pointerId);
+    moveTrim(e);
+  });
+  trimCanvas.addEventListener("pointermove", e => { if (dragHandle) moveTrim(e); });
+  function endTrimDrag() {
+    if (!dragHandle) return;
+    dragHandle = null;
+    renderCustomPanel(); // status met nieuwe lengte
+  }
+  trimCanvas.addEventListener("pointerup", endTrimDrag);
+  trimCanvas.addEventListener("pointercancel", endTrimDrag);
+  addEventListener("resize", () => paintTrim());
+
+  trimPlayBtn.addEventListener("click", () => {
+    SoundEngine.ensure();
+    SoundEngine.strike("custom", undefined, 0.8);
+  });
+  trimResetBtn.addEventListener("click", () => {
+    const tr = SoundEngine.trimInfo();
+    if (tr) SoundEngine.setTrim(0, tr.duration);
+    renderCustomPanel();
+  });
 
   async function toggleRecord() {
     if (recorder) {

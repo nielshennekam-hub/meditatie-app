@@ -3,7 +3,7 @@
    bent, met cache als vangnet voor offline); overige bestanden
    cache-eerst voor snelheid. */
 
-const CACHE = "stilte-v8";
+const CACHE = "stilte-v9";
 
 const ASSETS = [
   "./",
@@ -23,7 +23,8 @@ const ASSETS = [
   "./icons/apple-touch-icon-180.png",
   "./icons/apple-touch-icon-167.png",
   "./icons/apple-touch-icon-152.png",
-  "./icons/apple-touch-icon-120.png"
+  "./icons/apple-touch-icon-120.png",
+  "./assets/sounds/bowl-real.mp3"
 ];
 
 self.addEventListener("install", event => {

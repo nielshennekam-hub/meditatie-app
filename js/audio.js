@@ -38,6 +38,8 @@ const SoundEngine = (() => {
     ambient = null;
     customBuffer = null;
     decoding = null;
+    sampleBuffers = {};
+    samplePending = {};
     for (const k of Object.keys(noiseCache)) delete noiseCache[k];
     try { await old.close(); } catch (e) { /* al gesloten */ }
   }
@@ -81,10 +83,62 @@ const SoundEngine = (() => {
     }
   };
 
+  /* ---------- meegeleverde opnames (echte klankschaal) ---------- */
+
+  const SAMPLES = { real: "assets/sounds/bowl-real.mp3" };
+  let sampleBuffers = {};
+  let samplePending = {};
+
+  function loadSample(name) {
+    if (sampleBuffers[name]) return Promise.resolve(sampleBuffers[name]);
+    if (!samplePending[name]) {
+      samplePending[name] = fetch(SAMPLES[name])
+        .then(r => r.arrayBuffer())
+        .then(ab => ctx.decodeAudioData(ab))
+        .then(buf => { sampleBuffers[name] = buf; return buf; })
+        .catch(() => { samplePending[name] = null; return null; });
+    }
+    return samplePending[name];
+  }
+
+  // Alvast ophalen en decoderen, zodat de eerste slag direct klinkt.
+  function preload(name) {
+    if (!SAMPLES[name]) return;
+    ensure();
+    loadSample(name);
+  }
+
+  function strikeSample(name, when, volume) {
+    const t0 = when ?? ctx.currentTime;
+    const state = { cancelled: false, src: null };
+    const play = () => {
+      const buf = sampleBuffers[name];
+      if (state.cancelled || !buf) return;
+      const src = ctx.createBufferSource();
+      src.buffer = buf;
+      const g = ctx.createGain();
+      const at = Math.max(ctx.currentTime, t0);
+      g.gain.setValueAtTime(0, at);
+      g.gain.linearRampToValueAtTime(0.85 * volume, at + 0.01);
+      src.connect(g).connect(master);
+      src.start(at);
+      state.src = src;
+    };
+    if (sampleBuffers[name]) play();
+    else loadSample(name).then(play);
+    return {
+      cancel() {
+        state.cancelled = true;
+        if (state.src) { try { state.src.stop(); } catch (e) { /* al gestopt */ } }
+      }
+    };
+  }
+
   // Slaat één klank aan op tijdstip `when` (AudioContext-klok).
   // Geeft een handle terug waarmee de klank geannuleerd kan worden.
   function strike(type, when, volume = 1) {
     ensure();
+    if (SAMPLES[type]) return strikeSample(type, when, volume);
     if (type === "custom") {
       if (customBlob) return strikeCustom(when, volume);
       type = "bowl"; // geen opname: terugvallen op de klankschaal
@@ -153,7 +207,10 @@ const SoundEngine = (() => {
   let customBuffer = null;   // gedecodeerd
   let customGain = 1;        // normalisatie naar gelijk volume
   let customMeta = null;     // { name, duration }
+  let customTrim = null;     // { start, end } in seconden
+  let trimSaveId = null;
   let decoding = null;
+  const waveCache = { blob: null, peaks: null };
 
   function idb() {
     return new Promise((resolve, reject) => {
@@ -180,6 +237,10 @@ const SoundEngine = (() => {
       if (rec) {
         customBlob = rec.blob;
         customMeta = { name: rec.name, duration: rec.duration };
+        customTrim = {
+          start: rec.trimStart || 0,
+          end: rec.trimEnd || rec.duration
+        };
       }
     } catch (e) { /* opslag niet beschikbaar */ }
     return customMeta;
@@ -221,20 +282,77 @@ const SoundEngine = (() => {
       throw new Error("decode");
     }
     customMeta = { name: name || "opname", duration: Math.round(buf.duration * 10) / 10 };
+    customTrim = { start: 0, end: customMeta.duration };
     try {
       await idbOp("readwrite", store =>
-        store.put({ blob, name: customMeta.name, duration: customMeta.duration }, "custom"));
+        store.put({ blob, name: customMeta.name, duration: customMeta.duration,
+          trimStart: 0, trimEnd: customMeta.duration }, "custom"));
     } catch (e) { /* dan alleen voor deze sessie */ }
     return customMeta;
   }
 
   async function clearCustomSound() {
-    customBlob = customBuffer = customMeta = decoding = null;
+    customBlob = customBuffer = customMeta = customTrim = decoding = null;
+    waveCache.blob = waveCache.peaks = null;
     try { await idbOp("readwrite", store => store.delete("custom")); }
     catch (e) { /* ok */ }
   }
 
   function customInfo() { return customMeta; }
+
+  function trimInfo() {
+    if (!customMeta) return null;
+    const tr = customTrim || { start: 0, end: customMeta.duration };
+    return { start: tr.start, end: tr.end, duration: customMeta.duration };
+  }
+
+  // Knip direct in het geheugen aanpassen; opslaan gebeurt kort daarna
+  // (debounce), zodat slepen over de golfvorm vloeiend blijft.
+  function setTrim(start, end) {
+    if (!customMeta) return null;
+    const d = customMeta.duration;
+    start = Math.max(0, Math.min(start, d - 0.1));
+    end = Math.max(start + 0.1, Math.min(end, d));
+    customTrim = { start, end };
+    clearTimeout(trimSaveId);
+    trimSaveId = setTimeout(() => {
+      idbOp("readwrite", store =>
+        store.put({ blob: customBlob, name: customMeta.name, duration: customMeta.duration,
+          trimStart: customTrim.start, trimEnd: customTrim.end }, "custom"))
+        .catch(() => { /* dan alleen voor deze sessie */ });
+    }, 250);
+    return customTrim;
+  }
+
+  // Piekwaarden per kolom voor de golfvormweergave (genormaliseerd 0..1).
+  async function getWaveform(buckets = 160) {
+    ensure();
+    const buf = await decodeCustom();
+    if (!buf) return null;
+    if (waveCache.blob === customBlob && waveCache.peaks &&
+        waveCache.peaks.length === buckets) {
+      return { peaks: waveCache.peaks, duration: buf.duration };
+    }
+    const d = buf.getChannelData(0);
+    const peaks = new Float32Array(buckets);
+    const step = Math.max(1, Math.floor(d.length / buckets));
+    for (let b = 0; b < buckets; b++) {
+      let m = 0;
+      const s0 = b * step;
+      const s1 = Math.min(s0 + step, d.length);
+      for (let i = s0; i < s1; i += 8) {
+        const a = Math.abs(d[i]);
+        if (a > m) m = a;
+      }
+      peaks[b] = m;
+    }
+    let mx = 0;
+    for (const p of peaks) mx = Math.max(mx, p);
+    if (mx > 0) for (let i = 0; i < buckets; i++) peaks[i] /= mx;
+    waveCache.blob = customBlob;
+    waveCache.peaks = peaks;
+    return { peaks, duration: buf.duration };
+  }
 
   function strikeCustom(when, volume) {
     const t0 = when ?? ctx.currentTime;
@@ -246,10 +364,14 @@ const SoundEngine = (() => {
       const g = ctx.createGain();
       const v = 0.8 * volume * customGain;
       const at = Math.max(ctx.currentTime, t0);
+      const tr = customTrim || { start: 0, end: customBuffer.duration };
+      const dur = Math.max(0.1, tr.end - tr.start);
       g.gain.setValueAtTime(0, at);
-      g.gain.linearRampToValueAtTime(v, at + 0.01); // klikvrije inzet
+      g.gain.linearRampToValueAtTime(v, at + 0.01);               // klikvrije inzet
+      g.gain.setValueAtTime(v, at + Math.max(0.02, dur - 0.08));
+      g.gain.linearRampToValueAtTime(0.0001, at + dur);           // klikvrij einde
       src.connect(g).connect(master);
-      src.start(at);
+      src.start(at, tr.start, dur);
       state.src = src;
     };
     if (customBuffer) play();
@@ -408,7 +530,8 @@ const SoundEngine = (() => {
 
   return {
     ensure, now, strike, startAmbient, stopAmbient, setAmbientVolume,
-    fadeOutAll, currentAmbient, reset,
-    initCustomSound, setCustomSound, clearCustomSound, customInfo
+    fadeOutAll, currentAmbient, reset, preload,
+    initCustomSound, setCustomSound, clearCustomSound, customInfo,
+    trimInfo, setTrim, getWaveform
   };
 })();
