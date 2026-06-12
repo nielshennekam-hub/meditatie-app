@@ -186,7 +186,12 @@ def main():
         ("icon-192.png", 192, 1.0),
         ("icon-maskable-512.png", 512, 0.72),
         ("icon-maskable-192.png", 192, 0.72),
-        ("apple-touch-icon.png", 180, 0.94),
+        # Aparte bestandsnamen per maat: omzeilt ook de hardnekkige
+        # apple-touch-icon-cache van iOS na een eerdere mislukte fetch.
+        ("apple-touch-icon-180.png", 180, 0.94),
+        ("apple-touch-icon-167.png", 167, 0.94),
+        ("apple-touch-icon-152.png", 152, 0.94),
+        ("apple-touch-icon-120.png", 120, 0.94),
     ]
     for name, size, scale in jobs:
         path = os.path.join(OUT_DIR, name)

@@ -1,6 +1,9 @@
-/* Stilte — service worker: cache-first zodat de app volledig offline werkt. */
+/* Stilte — service worker.
+   Navigaties gaan netwerk-eerst (altijd de nieuwste app als je online
+   bent, met cache als vangnet voor offline); overige bestanden
+   cache-eerst voor snelheid. */
 
-const CACHE = "stilte-v3";
+const CACHE = "stilte-v4";
 
 const ASSETS = [
   "./",
@@ -16,7 +19,10 @@ const ASSETS = [
   "./icons/icon-512.png",
   "./icons/icon-maskable-192.png",
   "./icons/icon-maskable-512.png",
-  "./icons/apple-touch-icon.png"
+  "./icons/apple-touch-icon-180.png",
+  "./icons/apple-touch-icon-167.png",
+  "./icons/apple-touch-icon-152.png",
+  "./icons/apple-touch-icon-120.png"
 ];
 
 self.addEventListener("install", event => {
@@ -35,6 +41,22 @@ self.addEventListener("activate", event => {
 
 self.addEventListener("fetch", event => {
   if (event.request.method !== "GET") return;
+
+  // Pagina-navigaties: netwerk-eerst, zodat updates direct zichtbaar zijn.
+  if (event.request.mode === "navigate") {
+    event.respondWith(
+      fetch(event.request).then(res => {
+        if (res.ok) {
+          const copy = res.clone();
+          caches.open(CACHE).then(cache => cache.put("./index.html", copy));
+        }
+        return res;
+      }).catch(() => caches.match("./index.html"))
+    );
+    return;
+  }
+
+  // Overige bestanden: cache-eerst voor snelheid en offline gebruik.
   event.respondWith(
     caches.match(event.request, { ignoreSearch: true }).then(hit =>
       hit ||
@@ -44,9 +66,7 @@ self.addEventListener("fetch", event => {
           caches.open(CACHE).then(cache => cache.put(event.request, copy));
         }
         return res;
-      }).catch(() =>
-        event.request.mode === "navigate" ? caches.match("./index.html") : undefined
-      )
+      })
     )
   );
 });
