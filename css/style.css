@@ -418,6 +418,14 @@ button {
   box-shadow: 0 0 12px rgba(232, 144, 138, 0.25);
 }
 
+#custom-list { margin: 0 0 12px; }
+#custom-list .chip {
+  max-width: 140px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 .trim-wrap { margin: 2px 0 14px; }
 #trim-canvas {
   display: block;

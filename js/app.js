@@ -5,7 +5,7 @@
 
   const defaults = {
     minutes: 15, gong: "bowl", intervalMin: 0, ambient: "", prepSec: 5,
-    strikesStart: 1, strikesInterval: 1, strikesEnd: 1, gapSec: 2,
+    strikesStart: 1, strikesInterval: 1, strikesEnd: 1, gapSec: 2, customId: "",
     breathTech: "box", breathMin: 3, ambVolume: 60, sleepMin: 0, lang: "nl"
   };
 
@@ -162,13 +162,39 @@
   let wavePeaks = null;
   let waveDur = 0;
 
+  const customListWrap = document.getElementById("custom-list");
+
+  function renderCustomList() {
+    const items = SoundEngine.customList();
+    customListWrap.classList.toggle("hidden", items.length < 2);
+    customListWrap.innerHTML = "";
+    for (const it of items) {
+      const chip = document.createElement("button");
+      chip.className = "chip" +
+        (it.id === SoundEngine.activeCustomId() ? " active" : "");
+      chip.textContent = it.name;
+      chip.dataset.cid = it.id;
+      customListWrap.append(chip);
+    }
+  }
+
+  customListWrap.addEventListener("click", async e => {
+    const chip = e.target.closest("[data-cid]");
+    if (!chip || chip.dataset.cid === SoundEngine.activeCustomId()) return;
+    await SoundEngine.selectCustom(chip.dataset.cid);
+    settings.customId = chip.dataset.cid;
+    save();
+    renderCustomPanel();
+  });
+
   function renderCustomPanel(message) {
     customPanel.classList.toggle("hidden", settings.gong !== "custom");
     const info = SoundEngine.customInfo();
     const tr = SoundEngine.trimInfo();
     const len = tr ? Math.round((tr.end - tr.start) * 10) / 10 : 0;
     customStatus.textContent = message ||
-      (info ? I18n.t("custom.saved", len) : I18n.t("custom.none"));
+      (info ? I18n.t("custom.saved", info.name, len) : I18n.t("custom.none"));
+    renderCustomList();
     deleteBtn.classList.toggle("hidden", !info);
     deleteBtn.textContent = I18n.t("custom.delete");
     fileBtn.textContent = I18n.t("custom.choose");
@@ -291,7 +317,10 @@
         await SoundEngine.reset();
         refreshSoundCards();
         try {
-          await SoundEngine.setCustomSound(blob, "opname");
+          const n = SoundEngine.customList().length + 1;
+          const meta = await SoundEngine.addCustomSound(blob, I18n.t("custom.recname", n));
+          settings.customId = meta.id;
+          save();
           renderCustomPanel();
           updateSummary();
         } catch (e) {
@@ -318,7 +347,11 @@
     fileInput.value = "";
     if (!file) return;
     try {
-      await SoundEngine.setCustomSound(file, file.name);
+      const name = file.name.replace(/\.[^.]+$/, "") ||
+        I18n.t("custom.recname", SoundEngine.customList().length + 1);
+      const meta = await SoundEngine.addCustomSound(file, name);
+      settings.customId = meta.id;
+      save();
       renderCustomPanel();
       updateSummary();
     } catch (e) {
@@ -326,11 +359,17 @@
     }
   });
   deleteBtn.addEventListener("click", async () => {
-    await SoundEngine.clearCustomSound();
+    const nextId = await SoundEngine.deleteCustomSound();
+    settings.customId = nextId || "";
+    save();
     renderCustomPanel();
   });
 
-  SoundEngine.initCustomSound().then(() => renderCustomPanel());
+  SoundEngine.initCustomSound(settings.customId).then(() => {
+    const active = SoundEngine.activeCustomId() || "";
+    if (active !== settings.customId) { settings.customId = active; save(); }
+    renderCustomPanel();
+  });
 
   document.getElementById("start-meditation").addEventListener("click", () => {
     Session.startMeditation({

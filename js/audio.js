@@ -10,8 +10,32 @@ const SoundEngine = (() => {
   let ambientBus = null;
   let ambient = null;         // actief sfeergeluid { name, nodes, gain }
   let ambientVolume = 0.6;
+  let silentEl = null;
+
+  const IS_IOS = /iphone|ipad|ipod/i.test(navigator.userAgent) ||
+    (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
+
+  // iOS dempt Web Audio bij de stil-schakelaar. De audiosessie op
+  // "playback" zetten (moderne API) plus een onhoorbaar loopend
+  // <audio>-element (beproefde fallback) houdt de gongs hoorbaar.
+  function unlockMuteSwitch() {
+    try {
+      if ("audioSession" in navigator) navigator.audioSession.type = "playback";
+    } catch (e) { /* oudere iOS */ }
+    if (!IS_IOS) return;
+    if (!silentEl) {
+      silentEl = new Audio("assets/sounds/silence.mp3");
+      silentEl.loop = true;
+      silentEl.setAttribute("playsinline", "");
+    }
+    if (silentEl.paused) {
+      const p = silentEl.play();
+      if (p) p.catch(() => { /* buiten gebaar: volgende keer */ });
+    }
+  }
 
   function ensure() {
+    unlockMuteSwitch();
     if (!ctx) {
       const AC = window.AudioContext || window.webkitAudioContext;
       ctx = new AC();
@@ -204,11 +228,13 @@ const SoundEngine = (() => {
 
   const DB_NAME = "stilte";
   const DB_STORE = "sounds";
-  let customBlob = null;     // ruwe audio uit IndexedDB
+  let customBlob = null;     // ruwe audio van de actieve opname
   let customBuffer = null;   // gedecodeerd
   let customGain = 1;        // normalisatie naar gelijk volume
   let customMeta = null;     // { name, duration }
   let customTrim = null;     // { start, end } in seconden
+  let customId = null;       // sleutel van de actieve opname
+  let customItems = [];      // [{ id, name, duration }] — alle opnames
   let trimSaveId = null;
   let decoding = null;
   const waveCache = { blob: null, peaks: null };
@@ -231,19 +257,45 @@ const SoundEngine = (() => {
     }));
   }
 
-  // Bij het opstarten: opgeslagen opname alvast inladen (zonder audio-context).
-  async function initCustomSound() {
+  async function refreshCustomList() {
     try {
-      const rec = await idbOp("readonly", store => store.get("custom"));
-      if (rec) {
-        customBlob = rec.blob;
-        customMeta = { name: rec.name, duration: rec.duration };
-        customTrim = {
-          start: rec.trimStart || 0,
-          end: rec.trimEnd || rec.duration
-        };
+      const keys = await idbOp("readonly", store => store.getAllKeys());
+      const vals = await idbOp("readonly", store => store.getAll());
+      customItems = keys.map((k, i) =>
+        ({ id: k, name: vals[i].name, duration: vals[i].duration }));
+    } catch (e) { customItems = []; }
+  }
+
+  // Bij het opstarten: bibliotheek inladen en de voorkeursopname activeren.
+  async function initCustomSound(preferId) {
+    try {
+      // migratie: het oude enkele "custom"-slot wordt een bibliotheekitem
+      const legacy = await idbOp("readonly", store => store.get("custom"));
+      if (legacy) {
+        await idbOp("readwrite", store => {
+          store.put(legacy, "c" + Date.now());
+          return store.delete("custom");
+        });
       }
+      await refreshCustomList();
+      const pick = customItems.find(it => it.id === preferId) || customItems[0];
+      if (pick) await selectCustom(pick.id);
     } catch (e) { /* opslag niet beschikbaar */ }
+    return customMeta;
+  }
+
+  // Maakt een opname uit de bibliotheek actief (voor afspelen en knippen).
+  async function selectCustom(id) {
+    let rec = null;
+    try { rec = await idbOp("readonly", store => store.get(id)); }
+    catch (e) { /* ok */ }
+    if (!rec) return null;
+    customId = id;
+    customBlob = rec.blob;
+    customBuffer = null;
+    decoding = null;
+    customMeta = { name: rec.name, duration: rec.duration };
+    customTrim = { start: rec.trimStart || 0, end: rec.trimEnd || rec.duration };
     return customMeta;
   }
 
@@ -271,33 +323,50 @@ const SoundEngine = (() => {
     return decoding;
   }
 
-  async function setCustomSound(blob, name) {
+  // Voegt een nieuwe opname toe aan de bibliotheek en maakt hem actief.
+  async function addCustomSound(blob, name) {
     ensure();
+    const prev = { blob: customBlob, buf: customBuffer, dec: decoding };
     customBlob = blob;
     customBuffer = null;
     decoding = null;
     const buf = await decodeCustom();
     if (!buf) {
-      customBlob = null;
-      customMeta = null;
+      customBlob = prev.blob;
+      customBuffer = prev.buf;
+      decoding = prev.dec;
       throw new Error("decode");
     }
+    customId = "c" + Date.now();
     customMeta = { name: name || "opname", duration: Math.round(buf.duration * 10) / 10 };
     customTrim = { start: 0, end: customMeta.duration };
     try {
       await idbOp("readwrite", store =>
         store.put({ blob, name: customMeta.name, duration: customMeta.duration,
-          trimStart: 0, trimEnd: customMeta.duration }, "custom"));
+          trimStart: 0, trimEnd: customMeta.duration }, customId));
     } catch (e) { /* dan alleen voor deze sessie */ }
-    return customMeta;
+    await refreshCustomList();
+    return { id: customId, ...customMeta };
   }
 
-  async function clearCustomSound() {
-    customBlob = customBuffer = customMeta = customTrim = decoding = null;
+  // Verwijdert de actieve opname; geeft de id van de volgende terug (of null).
+  async function deleteCustomSound() {
+    if (customId) {
+      try { await idbOp("readwrite", store => store.delete(customId)); }
+      catch (e) { /* ok */ }
+    }
+    customId = customBlob = customBuffer = customMeta = customTrim = decoding = null;
     waveCache.blob = waveCache.peaks = null;
-    try { await idbOp("readwrite", store => store.delete("custom")); }
-    catch (e) { /* ok */ }
+    await refreshCustomList();
+    if (customItems[0]) {
+      await selectCustom(customItems[0].id);
+      return customItems[0].id;
+    }
+    return null;
   }
+
+  function customList() { return customItems; }
+  function activeCustomId() { return customId; }
 
   function customInfo() { return customMeta; }
 
@@ -316,10 +385,12 @@ const SoundEngine = (() => {
     end = Math.max(start + 0.1, Math.min(end, d));
     customTrim = { start, end };
     clearTimeout(trimSaveId);
+    const id = customId;
     trimSaveId = setTimeout(() => {
+      if (!id) return;
       idbOp("readwrite", store =>
         store.put({ blob: customBlob, name: customMeta.name, duration: customMeta.duration,
-          trimStart: customTrim.start, trimEnd: customTrim.end }, "custom"))
+          trimStart: customTrim.start, trimEnd: customTrim.end }, id))
         .catch(() => { /* dan alleen voor deze sessie */ });
     }, 250);
     return customTrim;
@@ -532,7 +603,8 @@ const SoundEngine = (() => {
   return {
     ensure, now, strike, startAmbient, stopAmbient, setAmbientVolume,
     fadeOutAll, currentAmbient, reset, preload,
-    initCustomSound, setCustomSound, clearCustomSound, customInfo,
+    initCustomSound, addCustomSound, deleteCustomSound, selectCustom,
+    customList, activeCustomId, customInfo,
     trimInfo, setTrim, getWaveform
   };
 })();
