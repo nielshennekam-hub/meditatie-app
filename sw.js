@@ -1,6 +1,6 @@
 /* Stilte — service worker: cache-first zodat de app volledig offline werkt. */
 
-const CACHE = "stilte-v1";
+const CACHE = "stilte-v2";
 
 const ASSETS = [
   "./",

@@ -171,6 +171,32 @@ button {
   color: var(--ink-faint);
 }
 
+/* ---------- Installatiehint ---------- */
+
+.hidden { display: none !important; }
+
+.install-hint {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  border-color: rgba(232, 192, 122, 0.35);
+  background: linear-gradient(110deg, rgba(232, 192, 122, 0.08), rgba(179, 136, 255, 0.06));
+}
+.install-hint p {
+  margin: 0;
+  font-size: 0.9rem;
+  font-weight: 300;
+  line-height: 1.55;
+  color: var(--ink-soft);
+}
+.install-hint .share-icon {
+  width: 15px;
+  height: 15px;
+  vertical-align: -2px;
+  color: var(--gold);
+}
+.install-actions { display: flex; gap: 8px; }
+
 /* ---------- Quote ---------- */
 
 .quote-card {

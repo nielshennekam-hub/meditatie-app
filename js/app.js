@@ -175,6 +175,52 @@
   document.getElementById("quote-text").textContent = q.t;
   document.getElementById("quote-author").textContent = "— " + q.a;
 
+  /* ---------- installatiehint (PWA) ---------- */
+
+  const HINT_KEY = "stilte.installhint.v1";
+  const hintCard = document.getElementById("install-hint");
+  const hintText = document.getElementById("install-text");
+  const installBtn = document.getElementById("install-btn");
+  const isStandalone = matchMedia("(display-mode: standalone)").matches ||
+    navigator.standalone === true;
+  const isIOS = /iphone|ipad|ipod/i.test(navigator.userAgent) ||
+    (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
+  let installPrompt = null;
+
+  const SHARE_SVG = '<svg class="share-icon" viewBox="0 0 24 24" aria-hidden="true">' +
+    '<path d="M12 3v12M8 6.5L12 3l4 3.5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" fill="none"/>' +
+    '<path d="M7 10H5.5A1.5 1.5 0 0 0 4 11.5v8A1.5 1.5 0 0 0 5.5 21h13a1.5 1.5 0 0 0 1.5-1.5v-8A1.5 1.5 0 0 0 18.5 10H17" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" fill="none"/></svg>';
+
+  if (!isStandalone && !localStorage.getItem(HINT_KEY)) {
+    if (isIOS) {
+      hintText.innerHTML = "Zet Stilte op je beginscherm voor de volledige app-ervaring: " +
+        "tik in Safari op " + SHARE_SVG + " <strong>Deel</strong> en kies " +
+        "<strong>‘Zet op beginscherm’</strong>.";
+      hintCard.classList.remove("hidden");
+    } else {
+      addEventListener("beforeinstallprompt", e => {
+        e.preventDefault();
+        installPrompt = e;
+        hintText.textContent = "Installeer Stilte als app — dan werkt hij offline en op volledig scherm.";
+        installBtn.classList.remove("hidden");
+        hintCard.classList.remove("hidden");
+      });
+    }
+  }
+
+  installBtn.addEventListener("click", async () => {
+    if (!installPrompt) return;
+    installPrompt.prompt();
+    await installPrompt.userChoice;
+    installPrompt = null;
+    hintCard.classList.add("hidden");
+  });
+
+  document.getElementById("install-dismiss").addEventListener("click", () => {
+    localStorage.setItem(HINT_KEY, "1");
+    hintCard.classList.add("hidden");
+  });
+
   /* ---------- sterrenhemel ---------- */
 
   const canvas = document.getElementById("stars");
