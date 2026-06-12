@@ -178,6 +178,10 @@
         const blob = new Blob(recChunks, { type: recorder.mimeType || "audio/mp4" });
         recorder = null;
         recordBtn.classList.remove("recording");
+        // iOS laat de uitvoer na microfoongebruik stil of op het
+        // oorspeakertje achter; een verse audiocontext herstelt dat.
+        await SoundEngine.reset();
+        refreshSoundCards();
         try {
           await SoundEngine.setCustomSound(blob, "opname");
           renderCustomPanel();

@@ -22,8 +22,24 @@ const SoundEngine = (() => {
       ambientBus.gain.value = ambientVolume;
       ambientBus.connect(master);
     }
-    if (ctx.state === "suspended") ctx.resume();
+    if (ctx.state !== "running") ctx.resume().catch(() => { /* volgt bij gebaar */ });
     return ctx;
+  }
+
+  // Sluit de audiocontext; bij de volgende klank wordt een verse opgebouwd.
+  // Nodig op iOS: na microfoongebruik blijft de uitvoer anders stil of
+  // hangt hij op het oorspeakertje.
+  async function reset() {
+    if (!ctx) return;
+    const old = ctx;
+    ctx = null;
+    master = null;
+    ambientBus = null;
+    ambient = null;
+    customBuffer = null;
+    decoding = null;
+    for (const k of Object.keys(noiseCache)) delete noiseCache[k];
+    try { await old.close(); } catch (e) { /* al gesloten */ }
   }
 
   function now() { ensure(); return ctx.currentTime; }
@@ -392,7 +408,7 @@ const SoundEngine = (() => {
 
   return {
     ensure, now, strike, startAmbient, stopAmbient, setAmbientVolume,
-    fadeOutAll, currentAmbient,
+    fadeOutAll, currentAmbient, reset,
     initCustomSound, setCustomSound, clearCustomSound, customInfo
   };
 })();
