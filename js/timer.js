@@ -50,19 +50,25 @@ const Session = (() => {
 
   /* ---------- gongs plannen op de audioklok ---------- */
 
+  const STRIKE_GAP = 2.2; // seconden tussen opeenvolgende slagen in een reeks
+
+  // Plant alle resterende bellen (reeksen) op de audioklok; voegt toe aan
+  // st.scheduled zodat pauze/stop ze kan annuleren. Aanroeper hoort eerst
+  // cancelBells() te doen bij herplannen.
   function scheduleBells() {
     const t0 = SoundEngine.now();
     const elapsed = st.totalSec - remaining();
-    st.scheduled = [];
+    const seq = (atSec, count, vol) => {
+      for (let k = 0; k < count; k++) {
+        const dt = atSec + k * STRIKE_GAP - elapsed;
+        if (dt > 0.05) st.scheduled.push(SoundEngine.strike(st.gong, t0 + dt, vol));
+      }
+    };
     if (st.mode === "meditatie" && st.intervalMin > 0) {
       const ival = st.intervalMin * 60;
-      for (let k = ival; k < st.totalSec; k += ival) {
-        if (k > elapsed + 0.5) {
-          st.scheduled.push(SoundEngine.strike(st.gong, t0 + (k - elapsed), 0.55));
-        }
-      }
+      for (let p = ival; p < st.totalSec; p += ival) seq(p, st.strikes.interval, 0.55);
     }
-    st.scheduled.push(SoundEngine.strike(st.gong, t0 + remaining(), 1));
+    seq(st.totalSec, st.strikes.end, 1);
   }
 
   function cancelBells() {
@@ -130,6 +136,7 @@ const Session = (() => {
       gong: cfg.gong,
       intervalMin: cfg.intervalMin,
       ambient: cfg.ambient,
+      strikes: cfg.strikes || { start: 1, interval: 1, end: 1 },
       paused: false,
       scheduled: []
     };
@@ -142,7 +149,10 @@ const Session = (() => {
       phaseLabel.textContent = "";
       subEl.textContent = "";
       st.endsAt = Date.now() + st.totalSec * 1000;
-      SoundEngine.strike(st.gong, SoundEngine.now(), 1);
+      const t0 = SoundEngine.now();
+      for (let k = 0; k < st.strikes.start; k++) {
+        st.scheduled.push(SoundEngine.strike(st.gong, t0 + k * STRIKE_GAP, 1));
+      }
       if (st.ambient) SoundEngine.startAmbient(st.ambient, 3);
       scheduleBells();
       st.tickId = requestAnimationFrame(tick);
@@ -171,6 +181,7 @@ const Session = (() => {
       pattern: BREATH_PATTERNS[cfg.tech] || BREATH_PATTERNS.box,
       gong: "bowl",
       intervalMin: 0,
+      strikes: { start: 1, interval: 1, end: 1 },
       paused: false,
       scheduled: []
     };

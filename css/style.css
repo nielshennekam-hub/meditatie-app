@@ -346,6 +346,22 @@ button {
   color: var(--ink-faint);
 }
 
+.strike-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.strike-row + .strike-row { margin-top: 2px; }
+.strike-label {
+  width: 58px;
+  flex-shrink: 0;
+  font-size: 0.82rem;
+  font-weight: 300;
+  color: var(--ink-soft);
+}
+.strike-row .chip-row { margin: 6px 0 0; }
+.strike-row .chip { padding: 6px 14px; }
+
 .preview-btn {
   display: grid;
   place-items: center;

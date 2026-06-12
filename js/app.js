@@ -5,6 +5,7 @@
 
   const defaults = {
     minutes: 15, gong: "bowl", intervalMin: 0, ambient: "", prepSec: 5,
+    strikesStart: 1, strikesInterval: 1, strikesEnd: 1,
     breathTech: "box", breathMin: 3, ambVolume: 60, sleepMin: 0
   };
 
@@ -78,13 +79,21 @@
   slider.addEventListener("change", save);
 
   const gongChips = bindChips("gong-chips", "gong", v => { settings.gong = v; save(); });
+  const strikesStartChips = bindChips("strikes-start-chips", "ss", v => { settings.strikesStart = parseInt(v, 10); save(); });
+  const strikesIntervalChips = bindChips("strikes-interval-chips", "si", v => { settings.strikesInterval = parseInt(v, 10); save(); });
+  const strikesEndChips = bindChips("strikes-end-chips", "se", v => { settings.strikesEnd = parseInt(v, 10); save(); });
   const intervalChips = bindChips("interval-chips", "ival", v => { settings.intervalMin = parseInt(v, 10); save(); });
   const ambientChips = bindChips("ambient-chips", "amb", v => { settings.ambient = v; save(); });
   const prepChips = bindChips("prep-chips", "prep", v => { settings.prepSec = parseInt(v, 10); save(); });
 
+  // De preview speelt de ingestelde startreeks, zodat je precies hoort
+  // hoe de sessie zal beginnen.
   document.getElementById("preview-gong").addEventListener("click", () => {
     SoundEngine.ensure();
-    SoundEngine.strike(settings.gong, undefined, 0.7);
+    const t0 = SoundEngine.now();
+    for (let k = 0; k < settings.strikesStart; k++) {
+      SoundEngine.strike(settings.gong, t0 + k * 2.2, 0.7);
+    }
   });
 
   document.getElementById("start-meditation").addEventListener("click", () => {
@@ -93,7 +102,12 @@
       gong: settings.gong,
       intervalMin: settings.intervalMin,
       ambient: settings.ambient,
-      prepSec: settings.prepSec
+      prepSec: settings.prepSec,
+      strikes: {
+        start: settings.strikesStart,
+        interval: settings.strikesInterval,
+        end: settings.strikesEnd
+      }
     });
   });
 
@@ -278,6 +292,9 @@
   slider.value = settings.minutes;
   updateDial();
   gongChips.set(settings.gong);
+  strikesStartChips.set(settings.strikesStart);
+  strikesIntervalChips.set(settings.strikesInterval);
+  strikesEndChips.set(settings.strikesEnd);
   intervalChips.set(settings.intervalMin);
   ambientChips.set(settings.ambient);
   prepChips.set(settings.prepSec);

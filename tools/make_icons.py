@@ -1,6 +1,8 @@
 #!/usr/bin/env python3
-"""Genereert de PWA-iconen voor Stilte (enso-ring op nachtgradient).
+"""Genereert de PWA-iconen voor Stilte.
 
+Compositie: penseelachtige enso-ring met goud-naar-lila verloop op een
+diepe nachthemel, een fonkelende ster in de opening van de ring.
 Gebruikt alleen de Python-standaardbibliotheek; uitvoer in ./icons/.
 Draaien vanuit de repo-root: python3 tools/make_icons.py
 """
@@ -13,10 +15,12 @@ import zlib
 OUT_DIR = os.path.join(os.path.dirname(__file__), "..", "icons")
 
 # Kleuren (RGB 0-255)
-BG_CENTER = (38, 30, 84)      # diep violet
-BG_EDGE = (11, 16, 38)        # nachtblauw
-RING = (236, 197, 130)        # warm goud
-GLOW = (200, 170, 255)        # zachte lila gloed
+BG_CENTER = (42, 32, 88)       # diep violet
+BG_EDGE = (9, 13, 34)          # nachtblauw
+RING_GOLD = (240, 200, 128)    # warm goud
+RING_LILAC = (186, 152, 255)   # zacht lila
+GLOW = (196, 168, 255)         # gloed binnen de ring
+SPARK = (255, 244, 214)        # ster in de opening
 
 
 def write_png(path, w, h, pixels):
@@ -43,10 +47,18 @@ def smoothstep(e0, e1, x):
     return t * t * (3 - 2 * t)
 
 
+def clamp01(x):
+    return 0.0 if x < 0 else 1.0 if x > 1 else x
+
+
+def angdiff(a, b):
+    return math.atan2(math.sin(a - b), math.cos(a - b))
+
+
 def render(size, ring_scale=1.0):
     """Rendert het icoon op `size` met 2x supersampling.
 
-    ring_scale < 1 verkleint de ring (veilige zone voor maskable icons).
+    ring_scale < 1 verkleint de compositie (veilige zone voor maskable icons).
     """
     ss = 2
     big = size * ss
@@ -54,19 +66,30 @@ def render(size, ring_scale=1.0):
     half = big / 2.0
 
     ring_r = half * 0.56 * ring_scale
-    ring_t = half * 0.085 * ring_scale
-    # Opening van de enso rechtsboven, met taps toelopende uiteinden
-    gap_center = math.radians(-55)
-    gap_half = math.radians(26)
-    taper = math.radians(16)
+    t_base = half * 0.072 * ring_scale
+    gap_center = math.radians(-55)   # opening rechtsboven
+    gap_half = math.radians(24)
+    taper = math.radians(15)
+    opp = gap_center + math.pi       # dikste punt tegenover de opening
 
-    rng = random.Random(7)
+    # Ster in de opening van de enso
+    spark_x = cx + ring_r * math.cos(gap_center)
+    spark_y = cy + ring_r * math.sin(gap_center)
+    spark_s = half * 0.040 * ring_scale
+
+    # Aurora-tinten voor diepte in de achtergrond
+    blobs = [
+        (big * 0.20, big * 0.18, half * 0.55, (148, 118, 226), 0.13),
+        (big * 0.82, big * 0.86, half * 0.60, (74, 132, 176), 0.10),
+    ]
+
+    rng = random.Random(11)
     stars = []
-    for _ in range(14):
+    for _ in range(18):
         a = rng.uniform(0, 2 * math.pi)
-        d = rng.uniform(0.62, 0.95) * half
+        d = rng.uniform(0.58, 0.96) * half
         stars.append((cx + d * math.cos(a), cy + d * math.sin(a),
-                      rng.uniform(1.2, 2.6) * ss, rng.uniform(0.25, 0.7)))
+                      rng.uniform(1.1, 2.8) * ss, rng.uniform(0.22, 0.65)))
 
     buf = bytearray(big * big * 4)
     for y in range(big):
@@ -76,15 +99,22 @@ def render(size, ring_scale=1.0):
             dx = x - cx
             d = math.sqrt(dx * dx + dy * dy)
 
-            # Achtergrond: radiale gradient
+            # Achtergrond: radiale gradient met lichte vignet
             t = min(1.0, d / half)
-            t = t * t * 0.85 + t * 0.15
+            t = t * t * 0.8 + t * 0.2
             r = BG_CENTER[0] + (BG_EDGE[0] - BG_CENTER[0]) * t
             g = BG_CENTER[1] + (BG_EDGE[1] - BG_CENTER[1]) * t
             b = BG_CENTER[2] + (BG_EDGE[2] - BG_CENTER[2]) * t
 
-            # Zachte lila gloed binnen de ring
-            glow = 0.16 * math.exp(-(d / (ring_r * 0.9)) ** 2 * 1.8)
+            # Aurora-blobs
+            for bx, by, bs, bc, bw in blobs:
+                w = bw * math.exp(-((x - bx) ** 2 + (y - by) ** 2) / (2 * bs * bs))
+                r += (bc[0] - r) * w
+                g += (bc[1] - g) * w
+                b += (bc[2] - b) * w
+
+            # Zachte gloed binnen de ring
+            glow = 0.15 * math.exp(-(d / (ring_r * 0.9)) ** 2 * 1.8)
             r += (GLOW[0] - r) * glow
             g += (GLOW[1] - g) * glow
             b += (GLOW[2] - b) * glow
@@ -95,29 +125,41 @@ def render(size, ring_scale=1.0):
                 if sd2 < (sr * 4) ** 2:
                     s = sb * math.exp(-sd2 / (sr * sr))
                     r += (255 - r) * s
-                    g += (255 - g) * s
-                    b += (250 - b) * s
+                    g += (252 - g) * s
+                    b += (244 - b) * s
 
-            # Enso-ring met opening
+            # Enso-ring: penseeldikte + kleurverloop goud -> lila
             ang = math.atan2(dy, dx)
-            da = math.atan2(math.sin(ang - gap_center), math.cos(ang - gap_center))
-            edge = smoothstep(gap_half, gap_half + taper, abs(da))
-            band = 1.0 - smoothstep(ring_t * 0.5, ring_t * 0.5 + 1.6 * ss,
-                                    abs(d - ring_r))
-            a = band * edge
-            if a > 0:
-                # Lichte gloed rond de ring zelf
-                halo = 0.35 * math.exp(-((d - ring_r) / (ring_t * 2.2)) ** 2) * edge
-                a = min(1.0, a + 0)
-                r += (RING[0] - r) * max(a, 0) + (RING[0] - r) * halo * 0.3
-                g += (RING[1] - g) * max(a, 0) + (RING[1] - g) * halo * 0.3
-                b += (RING[2] - b) * max(a, 0) + (RING[2] - b) * halo * 0.3
-            else:
-                halo = 0.30 * math.exp(-((d - ring_r) / (ring_t * 2.6)) ** 2) * edge
-                if halo > 0.004:
-                    r += (RING[0] - r) * halo
-                    g += (RING[1] - g) * halo
-                    b += (RING[2] - b) * halo
+            da = abs(angdiff(ang, gap_center))
+            edge = smoothstep(gap_half, gap_half + taper, da)
+            if edge > 0.001:
+                brush = 0.66 + 0.46 * (0.5 + 0.5 * math.cos(angdiff(ang, opp)))
+                tt = t_base * brush
+                band = 1.0 - smoothstep(tt * 0.5, tt * 0.5 + 1.7 * ss,
+                                        abs(d - ring_r))
+                mix = clamp01((dx + dy) / (2.4 * ring_r) + 0.5)
+                rc = RING_GOLD[0] + (RING_LILAC[0] - RING_GOLD[0]) * mix
+                gc = RING_GOLD[1] + (RING_LILAC[1] - RING_GOLD[1]) * mix
+                bc = RING_GOLD[2] + (RING_LILAC[2] - RING_GOLD[2]) * mix
+                halo = 0.30 * math.exp(-((d - ring_r) / (tt * 2.4)) ** 2) * edge
+                a = clamp01(band * edge + halo * 0.4)
+                r += (rc - r) * a
+                g += (gc - g) * a
+                b += (bc - b) * a
+
+            # Vierpuntige ster in de opening
+            sdx = x - spark_x
+            sdy = y - spark_y
+            if abs(sdx) < spark_s * 6 and abs(sdy) < spark_s * 6:
+                core = math.exp(-(sdx * sdx + sdy * sdy) / (2 * spark_s * spark_s))
+                arm_h = math.exp(-(sdy / (spark_s * 0.35)) ** 2) * \
+                    math.exp(-abs(sdx) / (spark_s * 2.6))
+                arm_v = math.exp(-(sdx / (spark_s * 0.35)) ** 2) * \
+                    math.exp(-abs(sdy) / (spark_s * 2.6))
+                s = clamp01(core + 0.75 * (arm_h + arm_v)) * 0.95
+                r += (SPARK[0] - r) * s
+                g += (SPARK[1] - g) * s
+                b += (SPARK[2] - b) * s
 
             buf[row + x * 4] = max(0, min(255, int(r + 0.5)))
             buf[row + x * 4 + 1] = max(0, min(255, int(g + 0.5)))
@@ -144,7 +186,7 @@ def main():
         ("icon-192.png", 192, 1.0),
         ("icon-maskable-512.png", 512, 0.72),
         ("icon-maskable-192.png", 192, 0.72),
-        ("apple-touch-icon.png", 180, 0.9),
+        ("apple-touch-icon.png", 180, 0.94),
     ]
     for name, size, scale in jobs:
         path = os.path.join(OUT_DIR, name)

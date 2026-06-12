@@ -6,6 +6,7 @@ Volledig offline, geen accounts, geen tracking — alleen jij en de stilte.
 ## Functies
 
 - **Meditatietimer** — 1 t/m 120 minuten, met voorbereidingstijd en intervalbellen
+- **Belletjes-reeksen** — stel per moment (start, tussendoor, einde) in hoeveel slagen er klinken, bijv. drie belletjes kort na elkaar bij de start
 - **Vier gesynthetiseerde klanken** — Tibetaanse klankschaal, diepe gong, kristallen schaal en koshi-belletjes, allemaal live opgebouwd met Web Audio (geen audiobestanden, dus razendsnel en offline)
 - **Ademhalingsoefeningen** — box-ademhaling, 4-7-8, gelijkmatig en kalmerend, met een geleide animatie
 - **Sfeergeluiden** — regen, oceaan, wind en diepe ruis, met volumeregeling en slaaptimer
