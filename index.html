@@ -85,7 +85,17 @@
       </div>
       <input type="range" id="duration-slider" class="slider" min="1" max="120" step="1" value="15" aria-label="Duur in minuten">
 
-      <div class="card setting-card">
+      <button class="primary-btn" id="start-meditation">Begin meditatie</button>
+
+      <div class="card setting-card collapsible" id="settings-card">
+        <button class="settings-toggle" id="settings-toggle" aria-expanded="false" aria-controls="settings-body">
+          <span class="settings-toggle-text">
+            <span class="setting-name">Instellingen</span>
+            <span class="settings-summary" id="settings-summary"></span>
+          </span>
+          <svg class="icon chevron" viewBox="0 0 24 24"><path d="M6 9l6 6 6-6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" fill="none"/></svg>
+        </button>
+        <div class="settings-body" id="settings-body">
         <div class="setting">
           <div class="setting-head">
             <span class="setting-name">Gong</span>
@@ -155,9 +165,8 @@
             <button class="chip" data-prep="20">20 s</button>
           </div>
         </div>
+        </div>
       </div>
-
-      <button class="primary-btn" id="start-meditation">Begin meditatie</button>
     </section>
 
     <!-- ====================== ADEM ====================== -->

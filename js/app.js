@@ -86,6 +86,33 @@
   const ambientChips = bindChips("ambient-chips", "amb", v => { settings.ambient = v; save(); });
   const prepChips = bindChips("prep-chips", "prep", v => { settings.prepSec = parseInt(v, 10); save(); });
 
+  /* ---------- inklapbare instellingen met samenvatting ---------- */
+
+  const settingsCard = document.getElementById("settings-card");
+  const settingsToggle = document.getElementById("settings-toggle");
+  const summaryEl = document.getElementById("settings-summary");
+  const GONG_NAMES = { bowl: "Klankschaal", gong: "Diepe gong", crystal: "Kristal", bells: "Belletjes" };
+  const AMB_NAMES = { rain: "regen", ocean: "oceaan", wind: "wind", noise: "ruis" };
+
+  function updateSummary() {
+    const parts = [
+      GONG_NAMES[settings.gong] || "Klankschaal",
+      `${settings.strikesStart}·${settings.strikesInterval}·${settings.strikesEnd} belletjes`
+    ];
+    if (settings.intervalMin > 0) parts.push(`elke ${settings.intervalMin} min`);
+    if (settings.ambient) parts.push(AMB_NAMES[settings.ambient]);
+    summaryEl.textContent = parts.join(" · ");
+  }
+
+  settingsToggle.addEventListener("click", () => {
+    const open = settingsCard.classList.toggle("open");
+    settingsToggle.setAttribute("aria-expanded", open);
+  });
+  // Samenvatting bijwerken na elke keuze binnen de instellingen
+  document.getElementById("settings-body").addEventListener("click", () => {
+    setTimeout(updateSummary, 0);
+  });
+
   // De preview speelt de ingestelde startreeks, zodat je precies hoort
   // hoe de sessie zal beginnen.
   document.getElementById("preview-gong").addEventListener("click", () => {
@@ -303,6 +330,7 @@
   sleepChips.set(settings.sleepMin);
   volSlider.value = settings.ambVolume;
   SoundEngine.setAmbientVolume(settings.ambVolume / 100);
+  updateSummary();
 
   Stats.renderHeader();
 

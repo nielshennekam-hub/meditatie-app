@@ -331,6 +331,39 @@ button {
 /* ---------- Instellingen ---------- */
 
 .setting-card { padding: 6px 18px; }
+.setting-card.collapsible { padding: 0 18px; }
+.settings-toggle {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 16px 0;
+  text-align: left;
+}
+.settings-toggle-text { min-width: 0; }
+.settings-summary {
+  display: block;
+  margin-top: 4px;
+  font-size: 0.8rem;
+  font-weight: 300;
+  color: var(--ink-soft);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.settings-toggle .chevron {
+  width: 18px;
+  height: 18px;
+  flex-shrink: 0;
+  color: var(--ink-faint);
+  transition: transform 0.3s ease;
+}
+.collapsible.open .chevron { transform: rotate(180deg); }
+.settings-body { display: none; padding-bottom: 8px; }
+.collapsible.open .settings-body { display: block; }
+.settings-body .setting:first-child { border-top: 1px solid rgba(255, 255, 255, 0.06); }
+
 .setting { padding: 14px 0; }
 .setting + .setting { border-top: 1px solid rgba(255, 255, 255, 0.06); }
 .setting-head {
