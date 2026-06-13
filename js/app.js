@@ -4,7 +4,7 @@
   const SKEY = "stilte.settings.v1";
 
   const defaults = {
-    minutes: 15, gong: "bowl", intervalMin: 0, ambient: "", prepSec: 5,
+    minutes: 15, gong: "bowl-small", intervalMin: 0, ambient: "", prepSec: 5,
     strikesStart: 1, strikesInterval: 1, strikesEnd: 1, gapSec: 2, customId: "",
     breathTech: "box", breathMin: 3, ambVolume: 60, sleepMin: 0, lang: "nl"
   };
@@ -12,6 +12,12 @@
   let settings = { ...defaults };
   try { Object.assign(settings, JSON.parse(localStorage.getItem(SKEY)) || {}); }
   catch (e) { /* verse start */ }
+
+  // Verwijderde klanken terugzetten op de Heldere schaal
+  if (["real", "bowl-large", "bowl-warm", "crystal", "bells"].includes(settings.gong)) {
+    settings.gong = "bowl-small";
+    save();
+  }
 
   I18n.setLang(settings.lang);
 

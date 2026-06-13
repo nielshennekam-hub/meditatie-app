@@ -130,10 +130,7 @@ const SoundEngine = (() => {
 
   // gain stemt het niveau af op de gesynthetiseerde klanken (RMS-gematcht)
   const SAMPLES = {
-    real: { url: "assets/sounds/bowl-real.mp3", gain: 0.5 },
-    "bowl-small": { url: "assets/sounds/bowl-small.mp3", gain: 1.05 },
-    "bowl-large": { url: "assets/sounds/bowl-large.mp3", gain: 1.05 },
-    "bowl-warm": { url: "assets/sounds/bowl-warm.mp3", gain: 1.05 }
+    "bowl-small": { url: "assets/sounds/bowl-small.mp3", gain: 1.05 }
   };
   let sampleBuffers = {};
   let samplePending = {};

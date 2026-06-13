@@ -7,7 +7,7 @@ Volledig offline, geen accounts, geen tracking — alleen jij en de stilte.
 
 - **Meditatietimer** — 1 t/m 120 minuten, met voorbereidingstijd en intervalbellen
 - **Belletjes-reeksen** — stel per moment (start, tussendoor, einde) in hoeveel slagen er klinken én hoeveel seconden ertussen zit
-- **Echte klankschalen** — naast de gesynthetiseerde klanken zijn er drie echte klankschaal-opnames (helder, diep, warm); zie [CREDITS.md](CREDITS.md) voor bronnen en licenties
+- **Echte klankschaal** — naast de gesynthetiseerde klanken is er een echte klankschaal-opname (Heldere schaal); zie [CREDITS.md](CREDITS.md) voor bron en licentie
 - **Eigen klankschaal** — neem je eigen klankschalen op met de microfoon (of kies een audiobestand); meerdere opnames bewaren, hernoemen, bijknippen en wisselen; ze klinken bij start, interval en einde
 - **Vier gesynthetiseerde klanken** — Tibetaanse klankschaal, diepe gong, kristallen schaal en koshi-belletjes, allemaal live opgebouwd met Web Audio (geen audiobestanden, dus razendsnel en offline)
 - **Ademhalingsoefeningen** — box-ademhaling, 4-7-8, gelijkmatig en kalmerend, met een geleide animatie
