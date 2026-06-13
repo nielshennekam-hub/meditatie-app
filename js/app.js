@@ -302,6 +302,7 @@
       return;
     }
     try {
+      SoundEngine.beginRecording(); // microfoon vrijmaken (audiosessie + keep-alive)
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
       recChunks = [];
       recorder = new MediaRecorder(stream);
@@ -315,6 +316,7 @@
         // iOS laat de uitvoer na microfoongebruik stil of op het
         // oorspeakertje achter; een verse audiocontext herstelt dat.
         await SoundEngine.reset();
+        SoundEngine.endRecording(); // afspeelmodus + keep-alive terug
         refreshSoundCards();
         try {
           const n = SoundEngine.customList().length + 1;
@@ -336,6 +338,9 @@
         if (sec >= 20 && recorder) recorder.stop(); // ruim genoeg voor een slag
       }, 250);
     } catch (e) {
+      SoundEngine.endRecording(); // sessie herstellen, anders blijven gongs stil
+      recordBtn.classList.remove("recording");
+      recordBtn.textContent = I18n.t("custom.record");
       renderCustomPanel(I18n.t("custom.error.mic"));
     }
   }

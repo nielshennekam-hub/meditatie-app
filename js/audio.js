@@ -11,6 +11,7 @@ const SoundEngine = (() => {
   let ambient = null;         // actief sfeergeluid { name, nodes, gain }
   let ambientVolume = 0.6;
   let silentEl = null;
+  let recordingActive = false;
 
   const IS_IOS = /iphone|ipad|ipod/i.test(navigator.userAgent) ||
     (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
@@ -19,6 +20,7 @@ const SoundEngine = (() => {
   // "playback" zetten (moderne API) plus een onhoorbaar loopend
   // <audio>-element (beproefde fallback) houdt de gongs hoorbaar.
   function unlockMuteSwitch() {
+    if (recordingActive) return; // tijdens opname blokkeert "playback" de microfoon
     try {
       if ("audioSession" in navigator) navigator.audioSession.type = "playback";
     } catch (e) { /* oudere iOS */ }
@@ -32,6 +34,23 @@ const SoundEngine = (() => {
       const p = silentEl.play();
       if (p) p.catch(() => { /* buiten gebaar: volgende keer */ });
     }
+  }
+
+  // Vóór een microfoonopname: de keep-alive pauzeren en de audiosessie naar
+  // opnamemodus. Zonder dit blijft iOS in "playback" hangen, waardoor een
+  // tweede getUserMedia-aanroep de microfoon niet meer krijgt.
+  function beginRecording() {
+    recordingActive = true;
+    if (silentEl && !silentEl.paused) silentEl.pause();
+    try {
+      if ("audioSession" in navigator) navigator.audioSession.type = "play-and-record";
+    } catch (e) { /* oudere iOS */ }
+  }
+
+  // Na de opname: afspeelmodus en keep-alive herstellen.
+  function endRecording() {
+    recordingActive = false;
+    unlockMuteSwitch();
   }
 
   function ensure() {
@@ -602,7 +621,7 @@ const SoundEngine = (() => {
 
   return {
     ensure, now, strike, startAmbient, stopAmbient, setAmbientVolume,
-    fadeOutAll, currentAmbient, reset, preload,
+    fadeOutAll, currentAmbient, reset, preload, beginRecording, endRecording,
     initCustomSound, addCustomSound, deleteCustomSound, selectCustom,
     customList, activeCustomId, customInfo,
     trimInfo, setTrim, getWaveform
