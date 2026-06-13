@@ -308,12 +308,12 @@ const Session = (() => {
     Stats.renderProgress();
   });
 
-  // Tik op het scherm tijdens een meditatie verduistert het (en terug).
-  // Tikken op de knoppen doet dit niet.
+  // Tik op het scherm tijdens een meditatie verduistert het (en terug),
+  // ook al tijdens de opwarmfase. Tikken op de knoppen doet dit niet.
   overlay.addEventListener("click", e => {
     if (!st) return;
     if (overlay.classList.contains("dimmed")) { overlay.classList.remove("dimmed"); return; }
-    if (st.mode !== "meditatie" || st.paused || st.prepId) return;
+    if (st.mode !== "meditatie" || st.paused) return;
     if (e.target.closest(".session-controls, .pause-actions")) return;
     overlay.classList.add("dimmed");
   });
