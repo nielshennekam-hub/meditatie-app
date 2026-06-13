@@ -418,6 +418,19 @@ button {
   box-shadow: 0 0 12px rgba(232, 144, 138, 0.25);
 }
 
+.custom-name {
+  width: 100%;
+  margin: 0 0 10px;
+  padding: 9px 12px;
+  border-radius: 10px;
+  border: 1px solid rgba(232, 192, 122, 0.55);
+  background: rgba(0, 0, 0, 0.28);
+  color: var(--ink);
+  font-size: 0.92rem;
+  outline: none;
+}
+.custom-name::placeholder { color: var(--ink-faint); }
+
 #custom-list { margin: 0 0 12px; }
 #custom-list .chip {
   max-width: 140px;

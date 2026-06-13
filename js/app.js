@@ -83,7 +83,7 @@
   const gongChips = bindChips("gong-chips", "gong", v => {
     settings.gong = v;
     save();
-    if (v === "real") SoundEngine.preload(v); // eerste slag dan direct raak
+    SoundEngine.preload(v); // bij een opname-schaal: eerste slag direct raak
     renderCustomPanel();
   });
   const gapChips = bindChips("gap-chips", "gap", v => { settings.gapSec = parseInt(v, 10); save(); });
@@ -148,6 +148,8 @@
   const fileBtn = document.getElementById("custom-file-btn");
   const fileInput = document.getElementById("custom-file");
   const deleteBtn = document.getElementById("custom-delete");
+  const renameBtn = document.getElementById("custom-rename");
+  const nameInput = document.getElementById("custom-name");
   let recorder = null;
   let recChunks = [];
   let recTickId = null;
@@ -198,6 +200,8 @@
     renderCustomList();
     deleteBtn.classList.toggle("hidden", !info);
     deleteBtn.textContent = I18n.t("custom.delete");
+    renameBtn.classList.toggle("hidden", !info);
+    renameBtn.textContent = I18n.t("custom.rename");
     fileBtn.textContent = I18n.t("custom.choose");
     if (recState === "idle") recordBtn.textContent = I18n.t("custom.record");
     trimWrap.classList.toggle("hidden", !info);
@@ -385,6 +389,39 @@
     settings.customId = nextId || "";
     save();
     renderCustomPanel();
+  });
+
+  // Hernoemen via een inline tekstveld (prompt() werkt onbetrouwbaar in een
+  // iOS-PWA). Toon het veld met de huidige naam; Enter of focusverlies bewaart.
+  let renameClosedAt = 0;
+  function openRename() {
+    const info = SoundEngine.customInfo();
+    if (!info) return;
+    nameInput.value = info.name;
+    nameInput.classList.remove("hidden");
+    nameInput.focus();
+    nameInput.select();
+  }
+  async function commitRename() {
+    if (nameInput.classList.contains("hidden")) return;
+    nameInput.classList.add("hidden");
+    renameClosedAt = Date.now();
+    const val = nameInput.value.trim();
+    const info = SoundEngine.customInfo();
+    if (val && info && val !== info.name) {
+      await SoundEngine.renameCustom(val);
+      renderCustomPanel();
+      updateSummary();
+    }
+  }
+  renameBtn.addEventListener("click", () => {
+    if (Date.now() - renameClosedAt < 250) return; // net gesloten door blur
+    openRename();
+  });
+  nameInput.addEventListener("blur", commitRename);
+  nameInput.addEventListener("keydown", e => {
+    if (e.key === "Enter") { e.preventDefault(); nameInput.blur(); }
+    else if (e.key === "Escape") { nameInput.value = ""; nameInput.classList.add("hidden"); }
   });
 
   SoundEngine.initCustomSound(settings.customId).then(() => {

@@ -3,7 +3,7 @@
    bent, met cache als vangnet voor offline); overige bestanden
    cache-eerst voor snelheid. */
 
-const CACHE = "stilte-v13";
+const CACHE = "stilte-v14";
 
 const ASSETS = [
   "./",
@@ -25,6 +25,9 @@ const ASSETS = [
   "./icons/apple-touch-icon-152.png",
   "./icons/apple-touch-icon-120.png",
   "./assets/sounds/bowl-real.mp3",
+  "./assets/sounds/bowl-small.mp3",
+  "./assets/sounds/bowl-large.mp3",
+  "./assets/sounds/bowl-warm.mp3",
   "./assets/sounds/silence.mp3"
 ];
 

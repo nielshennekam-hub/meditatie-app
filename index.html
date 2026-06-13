@@ -106,6 +106,9 @@
           <div class="chip-row small" id="gong-chips">
             <button class="chip active" data-gong="bowl" data-i18n="gong.bowl">Klankschaal</button>
             <button class="chip" data-gong="real" data-i18n="gong.real">Echte schaal</button>
+            <button class="chip" data-gong="bowl-small" data-i18n="gong.bowl-small">Heldere schaal</button>
+            <button class="chip" data-gong="bowl-large" data-i18n="gong.bowl-large">Diepe schaal</button>
+            <button class="chip" data-gong="bowl-warm" data-i18n="gong.bowl-warm">Warme schaal</button>
             <button class="chip" data-gong="gong" data-i18n="gong.gong">Diepe gong</button>
             <button class="chip" data-gong="crystal" data-i18n="gong.crystal">Kristal</button>
             <button class="chip" data-gong="bells" data-i18n="gong.bells">Belletjes</button>
@@ -114,6 +117,7 @@
           <div class="custom-sound hidden" id="custom-panel">
             <div class="chip-row small hidden" id="custom-list"></div>
             <p class="custom-status" id="custom-status"></p>
+            <input type="text" id="custom-name" class="custom-name hidden" maxlength="40" autocomplete="off" enterkeyhint="done">
             <div class="trim-wrap hidden" id="trim-wrap">
               <canvas id="trim-canvas" aria-label="Golfvorm met knipranden"></canvas>
               <div class="trim-times">
@@ -129,6 +133,7 @@
             <div class="custom-actions">
               <button class="chip" id="custom-record">● Opnemen</button>
               <button class="chip" id="custom-file-btn">Bestand kiezen</button>
+              <button class="chip hidden" id="custom-rename">Hernoem</button>
               <button class="chip hidden" id="custom-delete">Verwijderen</button>
             </div>
             <input type="file" id="custom-file" accept="audio/*" hidden>

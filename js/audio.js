@@ -129,7 +129,12 @@ const SoundEngine = (() => {
   /* ---------- meegeleverde opnames (echte klankschaal) ---------- */
 
   // gain stemt het niveau af op de gesynthetiseerde klanken (RMS-gematcht)
-  const SAMPLES = { real: { url: "assets/sounds/bowl-real.mp3", gain: 0.5 } };
+  const SAMPLES = {
+    real: { url: "assets/sounds/bowl-real.mp3", gain: 0.5 },
+    "bowl-small": { url: "assets/sounds/bowl-small.mp3", gain: 1.05 },
+    "bowl-large": { url: "assets/sounds/bowl-large.mp3", gain: 1.05 },
+    "bowl-warm": { url: "assets/sounds/bowl-warm.mp3", gain: 1.05 }
+  };
   let sampleBuffers = {};
   let samplePending = {};
 
@@ -387,6 +392,22 @@ const SoundEngine = (() => {
   function customList() { return customItems; }
   function activeCustomId() { return customId; }
 
+  // Hernoemt de actieve opname (max. 40 tekens) en bewaart de naam.
+  async function renameCustom(name) {
+    if (!customId || !customMeta) return null;
+    name = String(name).trim().slice(0, 40);
+    if (!name) return customMeta;
+    customMeta.name = name;
+    try {
+      await idbOp("readwrite", store =>
+        store.put({ blob: customBlob, name, duration: customMeta.duration,
+          trimStart: customTrim ? customTrim.start : 0,
+          trimEnd: customTrim ? customTrim.end : customMeta.duration }, customId));
+    } catch (e) { /* dan alleen voor deze sessie */ }
+    await refreshCustomList();
+    return customMeta;
+  }
+
   function customInfo() { return customMeta; }
 
   function trimInfo() {
@@ -622,7 +643,7 @@ const SoundEngine = (() => {
   return {
     ensure, now, strike, startAmbient, stopAmbient, setAmbientVolume,
     fadeOutAll, currentAmbient, reset, preload, beginRecording, endRecording,
-    initCustomSound, addCustomSound, deleteCustomSound, selectCustom,
+    initCustomSound, addCustomSound, deleteCustomSound, selectCustom, renameCustom,
     customList, activeCustomId, customInfo,
     trimInfo, setTrim, getWaveform
   };
