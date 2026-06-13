@@ -10,6 +10,8 @@ const Session = (() => {
   const timeEl = document.getElementById("session-time");
   const subEl = document.getElementById("session-sub");
   const pausePath = document.getElementById("pause-icon-path");
+  const pauseActions = document.getElementById("pause-actions");
+  const dimHint = document.getElementById("dim-hint");
 
   const ICON_PAUSE = "M8 5h3v14H8zM13 5h3v14h-3z";
   const ICON_PLAY = "M8 5v14l11-7z";
@@ -23,6 +25,7 @@ const Session = (() => {
 
   let st = null;          // actieve sessiestatus
   let wakeLock = null;
+  let hintTimer = null;
 
   function fmt(sec) {
     sec = Math.max(0, Math.round(sec));
@@ -115,9 +118,17 @@ const Session = (() => {
   /* ---------- levensloop ---------- */
 
   function openOverlay(mode) {
-    overlay.classList.remove("hidden");
+    overlay.classList.remove("hidden", "dimmed");
+    pauseActions.classList.add("hidden");
     phaseLabel.textContent = "";
     subEl.textContent = "";
+    // Verduisteren (tik = scherm zwart) alleen bij meditatie, niet bij adem
+    clearTimeout(hintTimer);
+    dimHint.classList.toggle("hidden", mode !== "meditatie");
+    if (mode === "meditatie") {
+      dimHint.style.opacity = "0.7";
+      hintTimer = setTimeout(() => { dimHint.style.opacity = "0"; }, 5000);
+    }
     if (mode === "meditatie") {
       halo.classList.add("ambient");
       halo.style.transition = "";
@@ -203,6 +214,7 @@ const Session = (() => {
     SoundEngine.stopAmbient(0.8);
     pausePath.setAttribute("d", ICON_PLAY);
     phaseLabel.textContent = I18n.t("session.paused");
+    pauseActions.classList.remove("hidden"); // beëindigen / verwijderen
     releaseWakeLock();
   }
 
@@ -213,6 +225,7 @@ const Session = (() => {
     st.paused = false;
     pausePath.setAttribute("d", ICON_PAUSE);
     phaseLabel.textContent = "";
+    pauseActions.classList.add("hidden");
     if (st.mode === "meditatie" && st.ambient) SoundEngine.startAmbient(st.ambient, 2);
     scheduleBells();
     grabWakeLock();
@@ -223,24 +236,28 @@ const Session = (() => {
     if (!st) return;
     cancelAnimationFrame(st.tickId);
     if (st.prepId) clearInterval(st.prepId);
+    clearTimeout(hintTimer);
     cancelBells();
     SoundEngine.stopAmbient(1.5);
     releaseWakeLock();
     pausePath.setAttribute("d", ICON_PAUSE);
+    pauseActions.classList.add("hidden");
     overlay.classList.add("hidden");
+    overlay.classList.remove("dimmed");
     halo.style.removeProperty("--breath");
     st = null;
   }
 
-  function finish(elapsedSec, completed) {
+  function finish(elapsedSec, save) {
     const mode = st.mode;
     teardown();
-    const minutes = Math.floor(elapsedSec / 60);
-    if (minutes >= 1) {
+    let minutes = 0;
+    if (save) {
+      minutes = Math.max(1, Math.round(elapsedSec / 60));
       Stats.addSession(minutes, mode);
       Stats.renderHeader();
     }
-    if (minutes >= 1 || completed) showDone(minutes, mode);
+    showDone(minutes, mode);
   }
 
   function complete() {
@@ -250,10 +267,19 @@ const Session = (() => {
     finish(st.totalSec, true);
   }
 
-  function stop() {
+  // Eerder beëindigen: de verstreken tijd telt mee en wordt bewaard.
+  function finishEarly() {
     if (!st) return;
-    const elapsed = st.prepId ? 0 : st.totalSec - remaining();
-    finish(elapsed, false);
+    if (st.prepId) { discard(); return; } // nog niet begonnen
+    const elapsed = st.totalSec - remaining();
+    if (elapsed < 1) { discard(); return; }
+    finish(elapsed, true);
+  }
+
+  // Verwijderen: sessie weggooien, niets bewaren, geen afrondingsscherm.
+  function discard() {
+    if (!st) return;
+    teardown();
   }
 
   function showDone(minutes, mode) {
@@ -275,10 +301,21 @@ const Session = (() => {
     if (!st) return;
     st.paused ? resume() : pause();
   });
-  document.getElementById("btn-stop").addEventListener("click", stop);
+  document.getElementById("btn-finish").addEventListener("click", finishEarly);
+  document.getElementById("btn-discard").addEventListener("click", discard);
   document.getElementById("btn-done-close").addEventListener("click", () => {
     doneOverlay.classList.add("hidden");
     Stats.renderProgress();
+  });
+
+  // Tik op het scherm tijdens een meditatie verduistert het (en terug).
+  // Tikken op de knoppen doet dit niet.
+  overlay.addEventListener("click", e => {
+    if (!st) return;
+    if (overlay.classList.contains("dimmed")) { overlay.classList.remove("dimmed"); return; }
+    if (st.mode !== "meditatie" || st.paused || st.prepId) return;
+    if (e.target.closest(".session-controls, .pause-actions")) return;
+    overlay.classList.add("dimmed");
   });
 
   return { startMeditation, startBreath, active: () => !!st };

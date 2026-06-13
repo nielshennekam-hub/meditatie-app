@@ -351,10 +351,12 @@
       <button class="round-btn" id="btn-pause" aria-label="Pauzeer">
         <svg viewBox="0 0 24 24" class="icon"><path id="pause-icon-path" d="M8 5h3v14H8zM13 5h3v14h-3z" fill="currentColor"/></svg>
       </button>
-      <button class="round-btn stop" id="btn-stop" aria-label="Stop">
-        <svg viewBox="0 0 24 24" class="icon"><rect x="7" y="7" width="10" height="10" rx="1.5" fill="currentColor"/></svg>
-      </button>
     </div>
+    <div class="pause-actions hidden" id="pause-actions">
+      <button class="ghost-btn" id="btn-finish" data-i18n="session.finish">Beëindigen</button>
+      <button class="ghost-btn danger" id="btn-discard" data-i18n="session.discard">Verwijderen</button>
+    </div>
+    <p class="dim-hint" id="dim-hint" data-i18n="session.dimhint">tik op het scherm om te verduisteren</p>
   </div>
 
   <!-- ====================== AFRONDING-OVERLAY ====================== -->

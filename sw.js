@@ -3,7 +3,7 @@
    bent, met cache als vangnet voor offline); overige bestanden
    cache-eerst voor snelheid. */
 
-const CACHE = "stilte-v16";
+const CACHE = "stilte-v17";
 
 const ASSETS = [
   "./",
