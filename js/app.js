@@ -151,6 +151,7 @@
   let recorder = null;
   let recChunks = [];
   let recTickId = null;
+  let recState = "idle"; // idle → starting → recording → stopping
 
   const trimWrap = document.getElementById("trim-wrap");
   const trimCanvas = document.getElementById("trim-canvas");
@@ -198,7 +199,7 @@
     deleteBtn.classList.toggle("hidden", !info);
     deleteBtn.textContent = I18n.t("custom.delete");
     fileBtn.textContent = I18n.t("custom.choose");
-    if (!recorder) recordBtn.textContent = I18n.t("custom.record");
+    if (recState === "idle") recordBtn.textContent = I18n.t("custom.record");
     trimWrap.classList.toggle("hidden", !info);
     trimPlayBtn.textContent = I18n.t("custom.play");
     trimResetBtn.textContent = I18n.t("custom.trimreset");
@@ -296,11 +297,22 @@
     renderCustomPanel();
   });
 
+  function stopRecording() {
+    if (recState !== "recording") return;
+    recState = "stopping";
+    clearInterval(recTickId);
+    recordBtn.textContent = I18n.t("custom.saving");
+    try { if (recorder) recorder.stop(); } catch (e) { /* al gestopt */ }
+  }
+
   async function toggleRecord() {
-    if (recorder) {
-      recorder.stop();
-      return;
-    }
+    if (recState === "recording") { stopRecording(); return; }
+    if (recState !== "idle") return; // tikken tijdens starten/opslaan negeren
+
+    // direct feedback geven, nog vóór de (async) toestemmingsprompt
+    recState = "starting";
+    recordBtn.classList.add("recording");
+    recordBtn.textContent = I18n.t("custom.starting");
     try {
       SoundEngine.beginRecording(); // microfoon vrijmaken (audiosessie + keep-alive)
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
@@ -318,26 +330,31 @@
         await SoundEngine.reset();
         SoundEngine.endRecording(); // afspeelmodus + keep-alive terug
         refreshSoundCards();
+        // recState blijft "stopping" tot de opname is opgeslagen, zodat
+        // een tik tijdens het verwerken geen nieuwe opname start.
         try {
           const n = SoundEngine.customList().length + 1;
           const meta = await SoundEngine.addCustomSound(blob, I18n.t("custom.recname", n));
           settings.customId = meta.id;
           save();
+          recState = "idle";
           renderCustomPanel();
           updateSummary();
         } catch (e) {
+          recState = "idle";
           renderCustomPanel(I18n.t("custom.error.decode"));
         }
       };
       recorder.start();
+      recState = "recording";
       const t0 = Date.now();
-      recordBtn.classList.add("recording");
       recTickId = setInterval(() => {
         const sec = (Date.now() - t0) / 1000;
         recordBtn.textContent = `■ ${sec.toFixed(0)} s`;
-        if (sec >= 20 && recorder) recorder.stop(); // ruim genoeg voor een slag
+        if (sec >= 30) stopRecording(); // veiligheidslimiet
       }, 250);
     } catch (e) {
+      recState = "idle";
       SoundEngine.endRecording(); // sessie herstellen, anders blijven gongs stil
       recordBtn.classList.remove("recording");
       recordBtn.textContent = I18n.t("custom.record");
