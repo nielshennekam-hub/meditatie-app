@@ -3,7 +3,7 @@
    bent, met cache als vangnet voor offline); overige bestanden
    cache-eerst voor snelheid. */
 
-const CACHE = "stilte-v14";
+const CACHE = "stilte-v15";
 
 const ASSETS = [
   "./",
@@ -47,27 +47,37 @@ self.addEventListener("activate", event => {
 
 self.addEventListener("fetch", event => {
   if (event.request.method !== "GET") return;
+  const url = new URL(event.request.url);
+  const sameOrigin = url.origin === location.origin;
 
-  // Pagina-navigaties: netwerk-eerst, zodat updates direct zichtbaar zijn.
-  if (event.request.mode === "navigate") {
+  // Code (navigatie + js/css/manifest): netwerk-eerst, zodat HTML en
+  // scripts altijd uit dezelfde versie komen; cache als offline-vangnet.
+  const isCode = event.request.mode === "navigate" ||
+    (sameOrigin && /\.(?:js|css|webmanifest)$/.test(url.pathname));
+
+  if (isCode) {
     event.respondWith(
       fetch(event.request).then(res => {
-        if (res.ok) {
+        if (res && res.ok) {
           const copy = res.clone();
-          caches.open(CACHE).then(cache => cache.put("./index.html", copy));
+          caches.open(CACHE).then(cache => cache.put(event.request, copy));
         }
         return res;
-      }).catch(() => caches.match("./index.html"))
+      }).catch(() =>
+        caches.match(event.request, { ignoreSearch: true }).then(hit =>
+          hit || (event.request.mode === "navigate" ? caches.match("./index.html") : undefined)
+        )
+      )
     );
     return;
   }
 
-  // Overige bestanden: cache-eerst voor snelheid en offline gebruik.
+  // Media (audio, afbeeldingen): cache-eerst voor snelheid en offline gebruik.
   event.respondWith(
     caches.match(event.request, { ignoreSearch: true }).then(hit =>
       hit ||
       fetch(event.request).then(res => {
-        if (res.ok && new URL(event.request.url).origin === location.origin) {
+        if (res.ok && sameOrigin) {
           const copy = res.clone();
           caches.open(CACHE).then(cache => cache.put(event.request, copy));
         }

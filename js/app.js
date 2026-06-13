@@ -651,6 +651,16 @@
   /* ---------- PWA ---------- */
 
   if ("serviceWorker" in navigator) {
+    // Bij een update neemt de nieuwe service worker de controle over; ververs
+    // dan eenmalig zodat HTML en JS uit dezelfde versie komen. Niet bij de
+    // allereerste installatie (dan was er nog geen controller).
+    const hadController = !!navigator.serviceWorker.controller;
+    let reloaded = false;
+    navigator.serviceWorker.addEventListener("controllerchange", () => {
+      if (!hadController || reloaded) return;
+      reloaded = true;
+      location.reload();
+    });
     addEventListener("load", () => {
       navigator.serviceWorker.register("sw.js").catch(() => { /* offline-cache optioneel */ });
     });
